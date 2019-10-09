@@ -1,0 +1,1595 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<meta name="author" content="Namgil Lee, Heon-Young Yang, and Sung-Ho Kim*" />
+
+<meta name="date" content="2019-10-07" />
+
+<title>VARshrink 0.3: Shrinkage Estimation Methods for Vector Autoregressive Models (A Brief Version)</title>
+
+<script>$(document).ready(function(){
+    if (typeof $('[data-toggle="tooltip"]').tooltip === 'function') {
+        $('[data-toggle="tooltip"]').tooltip();
+    }
+    if ($('[data-toggle="popover"]').popover === 'function') {
+        $('[data-toggle="popover"]').popover();
+    }
+});
+</script>
+
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css" data-origin="pandoc">
+code.sourceCode > span { display: inline-block; line-height: 1.25; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode { white-space: pre; position: relative; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+code.sourceCode { white-space: pre-wrap; }
+code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    for (var j = 0; j < rules.length; j++) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") continue;
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') continue;
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+<style type="text/css">
+  p.abstract{
+    text-align: center;
+    font-weight: bold;
+  }
+  div.abstract{
+    margin: auto;
+    width: 90%;
+  }
+</style>
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#header {
+text-align: center;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">VARshrink 0.3: Shrinkage Estimation Methods for Vector Autoregressive Models (A Brief Version)</h1>
+<h4 class="author">Namgil Lee, Heon-Young Yang, and Sung-Ho Kim*</h4>
+<h4 class="date">2019-10-07</h4>
+<div class="abstract">
+<p class="abstract">Abstract</p>
+<p>We introduce an <span style="font-family:Helvetica">R</span> software package, <strong>VARshrink</strong>, for providing shrinkage estimation methods for vector autoregressive (VAR) models. Contrary to the standard ordinary least squares method, shrinkage estimation methods can be applied to high-dimensional VAR models with dimensionality greater than the number of observations. While existing <span style="font-family:Helvetica">R</span> packages for VAR shrinkage are mostly based on parametric, Bayesian estimation methods using informative priors, the <strong>VARshrink</strong> aims to be an integrative <span style="font-family:Helvetica">R</span> package delivering nonparametric, parametric, and semiparametric methods in a unified and consistent manner. The current version of <strong>VARshrink</strong> contains four shrinkage estimation methods, which are the multivarate ridge regression, a nonparametric shrinkage method, a full Bayesian approach using noninformative priors, and a semiparametric Bayesian approach using informative priors. VAR estimation problems are formulated as a multivariate regression form, so that all the shrinkage estimation methods can be run by one interface function named <code>VARshrink()</code>. We clearly present mathematical expressions of shrinkage estimators of the shrinkage estimation methods. The effective number of parameters can be calculated based on a shrinkage intensity parameter value, which plays an important role for further statistical analyses. We provide a sample <span style="font-family:Helvetica">R</span> code for demonstration of the package and model comparison. <br><br> keywords: Bayes estimation, vector autoregression (VAR), high-dimensionality, shrinkage, multivariate time series</p>
+</div>
+
+
+
+<div id="sec:intro" class="section level1">
+<h1><span class="header-section-number">1</span> Introduction</h1>
+<p>Let <span class="math inline">\(\mathbf{y}_t = (y_{t1},y_{t2},\ldots,y_{tK})^\top\)</span> denote a <span class="math inline">\(K\times 1\)</span> vector of endogenous variables. A vector autoregressive (VAR) model of order <span class="math inline">\(p\)</span> can be expressed as <span class="math display">\[
+    \mathbf{y}_t = \mathbf{A}_1 \mathbf{y}_{t-1} + \cdots + \mathbf{A}_p \mathbf{y}_{t-p} + \mathbf{C} \mathbf{d}_t + \boldsymbol\epsilon_t,
+    \qquad\qquad\qquad (1)
+    \]</span> where <span class="math inline">\(\mathbf{d}_t\)</span> is an <span class="math inline">\(L\times 1\)</span> vector of deterministic regressors, <span class="math inline">\(\boldsymbol\epsilon_t\)</span> is a <span class="math inline">\(K\times 1\)</span> noise vector, and <span class="math inline">\(\mathbf{A}_1,\ldots,\mathbf{A}_p\)</span> and <span class="math inline">\(\mathbf{C}\)</span> are coefficient matrices <span class="citation">(Hamilton 1994; Tsay 2005)</span>.</p>
+<div id="backgrounds" class="section level2">
+<h2><span class="header-section-number">1.1</span> Backgrounds</h2>
+<p>Recently, several <span style="font-family:Helvetica">R</span> packages have been developed for parameter estimation and forecasting using stochastic time series models. The <strong>forecast</strong> package provides various methods and tools for univariate time series models such as the ARIMA and ETS models <span class="citation">(Hyndman et al. 2018)</span>. The <strong>MTS</strong> package has been developed for a wide variety of multivariate linear time series models and multivariate volatility models such as the VARMA, multivariate EWMA, and low-dimensional BEKK models <span class="citation">(Tsay and Wood 2018)</span>. The <strong>vars</strong> package provides methods for multivariate time series analysis using the VAR, SVAR, and SVEC models <span class="citation">(Pfaff and Stigler 2018)</span>.</p>
+<p>In this study, we focus on shrinkage estimation of VAR model parameters. Shrinkage estimation methods have been playing crucial roles in high-dimensional statistical modeling; see, e.g., <span class="citation">Beltrachini, von Ellenrieder, and Muravchik (2013)</span>, <span class="citation">Böhm and von Sachs (2009)</span>, <span class="citation">Fiecas and Ombao (2011)</span> and <span class="citation">Ledoit and Wolf (2004)</span>. For VAR models, several shrinkage estimation methods have been suggested such as a Stein-type nonparametric shrinkage estimation method <span class="citation">(Opgen-Rhein and Strimmer 2007b)</span>, Bayesian VARs using informative priors <span class="citation">(Bańbura, Giannone, and Reichlin 2010; Doan, Litterman, and Sims 1984; Koop and Korobilis 2010; Litterman 1986)</span>, Bayesian VARs using noninformative priors <span class="citation">(Ni and Sun 2005; Sun and Ni 2004)</span>, and a semiparametric Bayesian approach adopting a modified <span class="math inline">\(K\)</span>-fold cross validation <span class="citation">(Lee, Choi, and Kim 2016)</span>.</p>
+<p>Due to its popularity in macroeconomic time series analysis, several Bayesian VAR methods have been implemented in <span style="font-family:Helvetica">R</span> packages. For example, the function <code>BVAR()</code> in <strong>MTS</strong> implements a Bayesian VAR method using an informative prior <span class="citation">(Tsay and Wood 2018)</span>; the package <strong>bvarsv</strong> implements Bayesian VAR models with stochastic volatility and time-varying parameters <span class="citation">(Krueger 2015; Koop and Korobilis 2010; Primiceri 2005)</span>.</p>
+<p>On the other hand, we note that other types of shrinkage methods which have been implemented for other purposes than multivariate time series analysis can be applied to shrinkage estimation of VAR parameters. For instance, the function <code>cov.shrink()</code> in the package <strong>corpcor</strong> has been implemented to compute shrinkage estimates of covariances, but it has been applied to estimate VAR coefficients in <span class="citation">Opgen-Rhein and Strimmer (2007b; Schäfer et al. 2017)</span>. Moreover, we note that VAR models can be reformulated into multivariate regression problems, so that penalized least squares methods can be used for shrinkage estimation of VAR parameters, e.g., the functions <code>lm.gls()</code> for generalized least squares and <code>lm.ridge()</code> for ridge regression in the package <strong>MASS</strong> <span class="citation">(Ripley et al. 2018)</span>; the function <code>glmnet()</code> for Lasso and Elastic-Net regularized generalized linear models in the package <code>glmnet()</code> <span class="citation">(Friedman et al. 2018)</span>; the function <code>linearRidge()</code> for ridge regression in the package <strong>ridge</strong> <span class="citation">(Moritz and Cule 2018)</span>.</p>
+</div>
+<div id="main-purpose" class="section level2">
+<h2><span class="header-section-number">1.2</span> Main Purpose</h2>
+<p>While Bayesian approaches have been widely used in the literature, we note that nonparametric and semiparametric approaches have advantages in the case of high-dimensional VARs with more than several hundreds of time series variables due to their relatively low computational costs <span class="citation">(Opgen-Rhein and Strimmer 2007b)</span>. Despite of their relatively high computational costs, Bayesian approaches can impose proper assumptions on the multivariate time series data flexibly, such as VAR roots near unity and correlations between noise processes <span class="citation">(Lee, Choi, and Kim 2016)</span>. In this sense, a semiparametric approach can be a trade-off between nonparametric and parametric approaches <span class="citation">(Lee, Choi, and Kim 2016)</span>.</p>
+<p>In this study, we developed an integrative <span style="font-family:Helvetica">R</span> package, <strong>VARshrink</strong>, for implementing nonparametric, parametric, and semiparametric approaches for shrinkage estimation of VAR model parameters. By providing a simple interface function, <code>VARshrink()</code>, for running various types of shrinkage estimation methods, the performance of the methods can be easily compared. We note that the package <strong>vars</strong> implemented an ordinary least squares method for VAR models by the function <code>VAR()</code>. The function <code>VARshrink()</code> was built to extend <code>VAR()</code> to shrinkage estimation methods, so that the <strong>VARshrink</strong> package takes advantage of the tools and methods available in the <strong>vars</strong> package. For example, we demonstrate the use of model selection criteria such as AIC and BIC in this paper, where the methods <code>AIC(), BIC(),</code> and <code>logLik()</code> can handle multivariate t-distribution and the effective number of parameters in <strong>VARshrink</strong>.</p>
+<p>This paper is a <em>brief version</em> of the original manuscript. This paper is organized as follows. In Section <a href="#sec:models">2</a>, we explain the formulation of VAR models in a multivariate regression problem, which simplifies implementation of the package. In Section <a href="#sec:methods">3</a>, we describe the common interface function and the four shrinkage estimation methods included in the package. We clearly present closed form expressions for the shrinkage estimators inferred by the shrinkage methods, so that we can indicate the role of the shrinkage intensity parameters in each method. In addition, we explain how the effective number of parameters can be computed for shrinkage estimators. In Section <a href="#sec:numer">4</a>, we present numerical experiments using benchmark data and simulated data <em>briefly</em> for comparing performances of the shrinkage estimation methods. Discussion and conclusions are provided in Section <a href="#sec:concl">5</a>.</p>
+<hr />
+</div>
+</div>
+<div id="sec:models" class="section level1">
+<h1><span class="header-section-number">2</span> Models</h1>
+<p>In general, we can rewrite the model equation Eq. (1) in the form of a multivariate regression as <span class="math display">\[
+    \mathbf{y}_t    =   \mathbf{\Psi}^\top \mathbf{x}_t + \boldsymbol{\epsilon}_t,
+    \qquad\qquad\qquad (5)
+    \]</span> where <span class="math inline">\(\mathbf{\Psi} = (\mathbf{A}_1, \mathbf{A}_2, \ldots, \mathbf{A}_p, \mathbf{C})^\top\)</span> is a <span class="math inline">\((Kp + L) \times K\)</span> matrix of coefficients, <span class="math inline">\(\mathbf{x}_t = (\mathbf{y}_{t-1}^\top, \ldots, \mathbf{y}_{t-p}^\top, \mathbf{d}_t^\top)^\top\)</span> is a <span class="math inline">\((Kp + L)\times 1\)</span> vector of regressors. For estimation of VAR parameters from the observed time series data <span class="math inline">\(\mathbf{y}_1, \mathbf{y}_2, \ldots, \mathbf{y}_T\)</span>, we define data matrices as <span class="math display">\[\begin{equation}
+    \begin{split}
+    \mathbf{Y} &amp;= ( \mathbf{y}_{p+1}, \mathbf{y}_{p+2}, \ldots, \mathbf{y}_{T} )^\top \in \mathbb{R}^{N \times K},
+    \\
+    \mathbf{X} &amp;= ( \mathbf{x}_{p+1}, \mathbf{x}_{p+2}, \ldots, \mathbf{x}_{T} )^\top \in \mathbb{R}^{N \times (Kp + L)},
+    \end{split}
+    \end{equation}\]</span> with <span class="math inline">\(N = T-p\)</span>. Then, we can rewrite Eq. (5) in a matrix form as <span class="math display">\[
+    \mathbf{Y} = \mathbf{X} \mathbf{\Psi} + \mathbf{E} \in \mathbb{R}^{N \times K},
+    \qquad\qquad\qquad (6)
+    \]</span> with <span class="math inline">\(\mathbf{E} = (\boldsymbol\epsilon_{p+1}, \ldots, \boldsymbol\epsilon_T)^\top\)</span> and <span class="math inline">\(N = T-p\)</span>.</p>
+<hr />
+</div>
+<div id="sec:methods" class="section level1">
+<h1><span class="header-section-number">3</span> Shrinkage Estimation Methods</h1>
+<p>In this section, we will describe the shrinkage estimation methods implemented in this package. The methods are used for estimating the VAR coefficient matrix <span class="math inline">\(\mathbf{\Psi}\)</span> alone or both of the <span class="math inline">\(\mathbf{\Psi}\)</span> and <span class="math inline">\(\mathbf{\Sigma}\)</span> in Eq. (6).</p>
+<p>We provide a common <span style="font-family:Helvetica">R</span> function interface <code>VARshrink()</code> for running the estimation methods, which is defined by</p>
+<pre><code>VARshrink(y, p = 1, type = c(&quot;const&quot;, &quot;trend&quot;, &quot;both&quot;, &quot;none&quot;),
+  season = NULL, exogen = NULL, method = c(&quot;ridge&quot;, &quot;ns&quot;, &quot;fbayes&quot;,
+  &quot;sbayes&quot;, &quot;kcv&quot;), lambda = NULL, lambda_var = NULL, dof = Inf, ...)</code></pre>
+<p>The input arguments are described as follows.</p>
+<ul>
+<li><code>y</code>: A T-by-K matrix of endogenous variables</li>
+<li><code>p</code>: Integer for the lag order</li>
+<li><code>type</code>: Type of deterministic regressors to include.
+<ol style="list-style-type: decimal">
+<li>“const” - the constant: <span class="math inline">\(\mathbf{d}_t = 1\)</span>.</li>
+<li>“trend” - the trend: <span class="math inline">\(\mathbf{d}_t = t\)</span>.</li>
+<li>“both” - both the constant and the trend: <span class="math inline">\(\mathbf{d}_t = (t, 1)^\top\)</span>.</li>
+<li>“none” - no deterministic regressors.</li>
+</ol></li>
+<li><code>season</code>: An integer value of frequency for inclusion of centered seasonal dummy variables.</li>
+<li><code>exogen</code>: A T-by-L matrix of exogenous variables.</li>
+<li><code>method</code>:
+<ol style="list-style-type: decimal">
+<li>“ridge” - multivariate ridge regression.</li>
+<li>“ns” - a Stein-type nonparametric shrinkage method.</li>
+<li>“fbayes” - a full Bayesian shrinkage method using noninformative priors.</li>
+<li>“sbayes” - a semiparametric Bayesian shrinkage method using parameterized cross validation.</li>
+<li>“kcv” - a semiparametric Bayesian shrinkage method using K-fold cross validation</li>
+</ol></li>
+<li><code>lambda, lambda_var</code>: Shrinkage parameter value(s). Use of this parameter is slightly different for each method: the same value does not imply the same shrinkage estimates. See description in the following subsections for the use of shrinkage parameters in each method.</li>
+<li><code>dof</code>: Degree of freedom of multivariate t-distribution for noise. Valid only for <code>method = &quot;fbayes&quot;</code> and <code>method = &quot;sbayes&quot;</code>. <code>dof = Inf</code> means multivariate normal distribution.</li>
+</ul>
+<p>The output value is an object of class “varshrinkest”, which inherits the class “varest” in the package <strong>vars</strong>, and an object of class “varest” can be obtained by the function <code>VAR()</code> in the package <strong>vars</strong>. The input arguments and the output value indicate that <code>VARshrink()</code> is an extension of <code>VAR()</code> in the <strong>vars</strong> package. As a result, almost all the methods and functions included in the package <strong>vars</strong> are available for the package <strong>VARshrink</strong>, such as <code>fevd(), Phi(), plot()</code>. The methods and functions available in the <strong>VARshrink</strong> package are summarized in Table 1. The names of the functions for class “varshrinkest” has suffix &quot;_sh&quot; in order to distinguish them from the functions for class “varest”. We remark that the classes “varshrinkest”, “varshirf”, and “varshsum” inherit the classes “varest”, “varirf”, and “varsum” of the <strong>vars</strong> package, respectively.</p>
+<table>
+<caption>
+Table 1. Structure of the package VARshrink.
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+Function or method
+</th>
+<th style="text-align:left;">
+Class
+</th>
+<th style="text-align:left;">
+Methods for class
+</th>
+<th style="text-align:left;">
+Functions for class
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;width: 7em; ">
+VAR
+</td>
+<td style="text-align:left;width: 7em; ">
+varshrinkest, varest
+</td>
+<td style="text-align:left;width: 7em; ">
+coef, fevd, fitted, irf, logLik, Phi, plot, predict, print, Psi, resid, summary
+</td>
+<td style="text-align:left;width: 7em; ">
+Acoef_sh, arch.test_sh, Bcoef_sh, BQ_sh, causality_sh, normality.test_sh, restrict_sh, roots_sh, serial.test_sh, stability_sh
+</td>
+</tr>
+<tr>
+<td style="text-align:left;width: 7em; ">
+fevd
+</td>
+<td style="text-align:left;width: 7em; ">
+varfevd
+</td>
+<td style="text-align:left;width: 7em; ">
+plot, print
+</td>
+<td style="text-align:left;width: 7em; ">
+</td>
+</tr>
+<tr>
+<td style="text-align:left;width: 7em; ">
+irf
+</td>
+<td style="text-align:left;width: 7em; ">
+varshirf, varirf
+</td>
+<td style="text-align:left;width: 7em; ">
+plot, print
+</td>
+<td style="text-align:left;width: 7em; ">
+</td>
+</tr>
+<tr>
+<td style="text-align:left;width: 7em; ">
+predict
+</td>
+<td style="text-align:left;width: 7em; ">
+varprd
+</td>
+<td style="text-align:left;width: 7em; ">
+plot, print
+</td>
+<td style="text-align:left;width: 7em; ">
+fanchart
+</td>
+</tr>
+<tr>
+<td style="text-align:left;width: 7em; ">
+summary
+</td>
+<td style="text-align:left;width: 7em; ">
+varshsum, varsum
+</td>
+<td style="text-align:left;width: 7em; ">
+print
+</td>
+<td style="text-align:left;width: 7em; ">
+</td>
+</tr>
+<tr>
+<td style="text-align:left;width: 7em; ">
+arch.test_sh
+</td>
+<td style="text-align:left;width: 7em; ">
+varcheck
+</td>
+<td style="text-align:left;width: 7em; ">
+plot, print
+</td>
+<td style="text-align:left;width: 7em; ">
+</td>
+</tr>
+<tr>
+<td style="text-align:left;width: 7em; ">
+normality.test_sh
+</td>
+<td style="text-align:left;width: 7em; ">
+varcheck
+</td>
+<td style="text-align:left;width: 7em; ">
+plot, print
+</td>
+<td style="text-align:left;width: 7em; ">
+</td>
+</tr>
+<tr>
+<td style="text-align:left;width: 7em; ">
+serial.test_sh
+</td>
+<td style="text-align:left;width: 7em; ">
+varcheck
+</td>
+<td style="text-align:left;width: 7em; ">
+plot, print
+</td>
+<td style="text-align:left;width: 7em; ">
+</td>
+</tr>
+<tr>
+<td style="text-align:left;width: 7em; ">
+stability_sh
+</td>
+<td style="text-align:left;width: 7em; ">
+varstabil
+</td>
+<td style="text-align:left;width: 7em; ">
+plot, print
+</td>
+<td style="text-align:left;width: 7em; ">
+</td>
+</tr>
+</tbody>
+</table>
+<div id="multivariate-ridge-regression" class="section level2">
+<h2><span class="header-section-number">3.1</span> Multivariate Ridge Regression</h2>
+<p>The ridge regression method is a kind of penalized least squares (PLS) method, which produces a biased estimate of the VAR coefficient <span class="citation">(Hoerl and Kennard 1970)</span>. Formally speaking, the ridge regression estimator of <span class="math inline">\(\mathbf{\Psi}\)</span> can be obtained by minimizing the penalized sum of squared prediction errors (SSPE) as <span class="math display">\[\begin{equation}
+    \widehat{ \mathbf{\Psi} }^{\text{R}} (\lambda) =
+    \arg\min_{\mathbf{\Psi}}
+    \
+    \frac{1}{N}
+    \left\|\mathbf{Y}  -  \mathbf{X} \mathbf{\Psi} \right\|_F^2  +
+    \lambda \left\| \mathbf{\Psi} \right\|_F^2,
+    \end{equation}\]</span> where <span class="math inline">\(\|\mathbf{A}\|_F = \sqrt{ \sum_{i} \sum_{j} a_{ij}^2 }\)</span> is the Frobenius norm of a matrix <span class="math inline">\(\mathbf{A}\)</span>, <span class="math inline">\(N = T-p\)</span>, and <span class="math inline">\(\lambda \geq 0\)</span> is called the regularization parameter or the shrinkage parameter. The ridge regression estimator <span class="math inline">\(\widehat{ \mathbf{\Psi} }^\text{R} (\lambda)\)</span> can be expressed in the closed form <span class="math display">\[\begin{equation}
+    \widehat{ \mathbf{\Psi} }^\text{R} (\lambda) =
+    \left( \mathbf{X}^\top \mathbf{X} + N \lambda \mathbf{I} \right)^{-1} \mathbf{X}^\top \mathbf{Y},
+    \qquad
+    \lambda \geq 0.
+    \end{equation}\]</span></p>
+<p>The shrinkage parameter <span class="math inline">\(\lambda\)</span> for the ridge regression can be automatically determined by using the generalized cross-validation (GCV) <span class="citation">(Golub, Heath, and Wahba 1979)</span>. The GCV selects the value of <span class="math inline">\(\lambda\)</span> where the GCV score given below is minimized: <span class="math display">\[\begin{equation}
+    GCV(\lambda) = \frac{1}{N} \left\| (\mathbf{I} - \mathbf{H}(\lambda) \mathbf{Y} )  \right\|^2_\text{F}
+    \left/
+    \left[ \frac{1}{N} Trace(\mathbf{I} - \mathbf{H}(\lambda) ) \right]^2
+    \right. ,
+    \end{equation}\]</span> where <span class="math inline">\(\mathbf{H}(\lambda) = \mathbf{X}^\top \left(\mathbf{X}^\top \mathbf{X} + N \lambda \mathbf{I} \right)^{-1} \mathbf{X}^\top\)</span>.</p>
+<p>In this package, the interface to the shrinkage estimation methods is provided by the function <code>VARshrink(method = &quot;ridge&quot;, ...)</code>. If the input argument <code>lambda</code> is set at a value or a vector of values, then corresponding GCV score is computed automatically for each <span class="math inline">\(\lambda\)</span> value, and the VAR coefficients with the smallest GCV score is selected. If <code>lambda = NULL</code>, then the default value of <code>c(0.0001, 0.0005, 0.001, 0.005, ..., 10, 50)</code> is used.</p>
+<p>For example, simulated time series data of length <span class="math inline">\(T=100\)</span> were generated based on a multivariate normal distribution for noise and a VAR model with <span class="math inline">\(p=1\)</span>, <span class="math inline">\(K=2\)</span>, <span class="math inline">\(\mathbf{A}_1 = 0.5\mathbf{I}_2\)</span>, <span class="math inline">\(\mathbf{C}=(0.2, 0.7)^\top\)</span>, and <span class="math inline">\(\mathbf{\Sigma} = 0.1^2\mathbf{I}_2\)</span> as follows:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1"></a><span class="kw">set.seed</span>(<span class="dv">1000</span>)</span>
+<span id="cb2-2"><a href="#cb2-2"></a>myCoef &lt;-<span class="st"> </span><span class="kw">list</span>(<span class="dt">A =</span> <span class="kw">list</span>(<span class="kw">matrix</span>(<span class="kw">c</span>(<span class="fl">0.5</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="fl">0.5</span>), <span class="dv">2</span>, <span class="dv">2</span>)), <span class="dt">c =</span> <span class="kw">c</span>(<span class="fl">0.2</span>, <span class="fl">0.7</span>))</span>
+<span id="cb2-3"><a href="#cb2-3"></a>myModel &lt;-<span class="st"> </span><span class="kw">list</span>(<span class="dt">Coef =</span> myCoef, <span class="dt">Sigma =</span> <span class="kw">diag</span>(<span class="fl">0.1</span><span class="op">^</span><span class="dv">2</span>, <span class="dv">2</span>), <span class="dt">dof =</span> <span class="ot">Inf</span>)</span>
+<span id="cb2-4"><a href="#cb2-4"></a>Y &lt;-<span class="st"> </span><span class="kw">simVARmodel</span>(<span class="dt">numT =</span> <span class="dv">100</span>, <span class="dt">model =</span> myModel, <span class="dt">burnin =</span> <span class="dv">10</span>)</span>
+<span id="cb2-5"><a href="#cb2-5"></a>resu_estim &lt;-<span class="st"> </span><span class="kw">list</span>()</span></code></pre></div>
+<p>Then, the multivariate ridge regression can be carried out for VAR models as follows. The result printed on the screen shows all the <code>lambda</code> values considered and the corresponding GCV values. The VAR parameters are estimated using the lambda value with the minimum GCV value.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1"></a>resu_estim<span class="op">$</span><span class="st">`</span><span class="dt">Ridge regression</span><span class="st">`</span> &lt;-</span>
+<span id="cb3-2"><a href="#cb3-2"></a><span class="st">  </span><span class="kw">VARshrink</span>(Y, <span class="dt">p =</span> <span class="dv">1</span>, <span class="dt">type =</span> <span class="st">&quot;const&quot;</span>, <span class="dt">method =</span> <span class="st">&quot;ridge&quot;</span>, <span class="dt">lambda =</span> <span class="ot">NULL</span>)</span>
+<span id="cb3-3"><a href="#cb3-3"></a>resu_estim<span class="op">$</span><span class="st">`</span><span class="dt">Ridge regression</span><span class="st">`</span></span>
+<span id="cb3-4"><a href="#cb3-4"></a><span class="co">#&gt; </span></span>
+<span id="cb3-5"><a href="#cb3-5"></a><span class="co">#&gt; VAR Shrinkage Estimation Results:</span></span>
+<span id="cb3-6"><a href="#cb3-6"></a><span class="co">#&gt; ================================= </span></span>
+<span id="cb3-7"><a href="#cb3-7"></a><span class="co">#&gt; </span></span>
+<span id="cb3-8"><a href="#cb3-8"></a><span class="co">#&gt; Estimated coefficients for equation y1: </span></span>
+<span id="cb3-9"><a href="#cb3-9"></a><span class="co">#&gt; ======================================= </span></span>
+<span id="cb3-10"><a href="#cb3-10"></a><span class="co">#&gt; Call:</span></span>
+<span id="cb3-11"><a href="#cb3-11"></a><span class="co">#&gt; y1 = y1.l1 + y2.l1 + const </span></span>
+<span id="cb3-12"><a href="#cb3-12"></a><span class="co">#&gt; </span></span>
+<span id="cb3-13"><a href="#cb3-13"></a><span class="co">#&gt;      y1.l1      y2.l1      const </span></span>
+<span id="cb3-14"><a href="#cb3-14"></a><span class="co">#&gt; 0.61424699 0.07318362 0.05264740 </span></span>
+<span id="cb3-15"><a href="#cb3-15"></a><span class="co">#&gt; </span></span>
+<span id="cb3-16"><a href="#cb3-16"></a><span class="co">#&gt; </span></span>
+<span id="cb3-17"><a href="#cb3-17"></a><span class="co">#&gt; Estimated coefficients for equation y2: </span></span>
+<span id="cb3-18"><a href="#cb3-18"></a><span class="co">#&gt; ======================================= </span></span>
+<span id="cb3-19"><a href="#cb3-19"></a><span class="co">#&gt; Call:</span></span>
+<span id="cb3-20"><a href="#cb3-20"></a><span class="co">#&gt; y2 = y1.l1 + y2.l1 + const </span></span>
+<span id="cb3-21"><a href="#cb3-21"></a><span class="co">#&gt; </span></span>
+<span id="cb3-22"><a href="#cb3-22"></a><span class="co">#&gt;     y1.l1     y2.l1     const </span></span>
+<span id="cb3-23"><a href="#cb3-23"></a><span class="co">#&gt; 0.1195550 0.3254618 0.9055450 </span></span>
+<span id="cb3-24"><a href="#cb3-24"></a><span class="co">#&gt; </span></span>
+<span id="cb3-25"><a href="#cb3-25"></a><span class="co">#&gt; </span></span>
+<span id="cb3-26"><a href="#cb3-26"></a><span class="co">#&gt; lambda: 1e-04 5e-04 0.001 0.005 0.01 0.05 0.1 0.5 1 5 10 50 (estimated: TRUE) </span></span>
+<span id="cb3-27"><a href="#cb3-27"></a><span class="co">#&gt; GCV:  0.0187 0.0186 0.0186 0.0192 0.02 0.0227 0.025 0.0647 0.1506 0.8406 1.2754 1.9329</span></span></code></pre></div>
+<p>The method <code>summary()</code> is available for objects of class “varshrinkest” as follows:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1"></a><span class="kw">summary</span>(resu_estim<span class="op">$</span><span class="st">`</span><span class="dt">Ridge regression</span><span class="st">`</span>)</span>
+<span id="cb4-2"><a href="#cb4-2"></a><span class="co">#&gt; </span></span>
+<span id="cb4-3"><a href="#cb4-3"></a><span class="co">#&gt; VAR Shrinkage Estimation Results:</span></span>
+<span id="cb4-4"><a href="#cb4-4"></a><span class="co">#&gt; =================================== </span></span>
+<span id="cb4-5"><a href="#cb4-5"></a><span class="co">#&gt; Endogenous variables: y1, y2 </span></span>
+<span id="cb4-6"><a href="#cb4-6"></a><span class="co">#&gt; Deterministic variables: const </span></span>
+<span id="cb4-7"><a href="#cb4-7"></a><span class="co">#&gt; Sample size: 99 </span></span>
+<span id="cb4-8"><a href="#cb4-8"></a><span class="co">#&gt; Log Likelihood: 188.793 </span></span>
+<span id="cb4-9"><a href="#cb4-9"></a><span class="co">#&gt; Roots of the characteristic polynomial:</span></span>
+<span id="cb4-10"><a href="#cb4-10"></a><span class="co">#&gt; 0.6419 0.2978</span></span>
+<span id="cb4-11"><a href="#cb4-11"></a><span class="co">#&gt; Call:</span></span>
+<span id="cb4-12"><a href="#cb4-12"></a><span class="co">#&gt; VARshrink(y = Y, p = 1, type = &quot;const&quot;, method = &quot;ridge&quot;, lambda = NULL)</span></span>
+<span id="cb4-13"><a href="#cb4-13"></a><span class="co">#&gt; </span></span>
+<span id="cb4-14"><a href="#cb4-14"></a><span class="co">#&gt; </span></span>
+<span id="cb4-15"><a href="#cb4-15"></a><span class="co">#&gt; Estimation results for equation y1: </span></span>
+<span id="cb4-16"><a href="#cb4-16"></a><span class="co">#&gt; =================================== </span></span>
+<span id="cb4-17"><a href="#cb4-17"></a><span class="co">#&gt; y1 = y1.l1 + y2.l1 + const </span></span>
+<span id="cb4-18"><a href="#cb4-18"></a><span class="co">#&gt; </span></span>
+<span id="cb4-19"><a href="#cb4-19"></a><span class="co">#&gt;       Estimate Std. Error t value Pr(&gt;|t|)    </span></span>
+<span id="cb4-20"><a href="#cb4-20"></a><span class="co">#&gt; y1.l1  0.61425    0.07636   8.045 2.27e-12 ***</span></span>
+<span id="cb4-21"><a href="#cb4-21"></a><span class="co">#&gt; y2.l1  0.07318    0.07549   0.969    0.335    </span></span>
+<span id="cb4-22"><a href="#cb4-22"></a><span class="co">#&gt; const  0.05265    0.10888   0.484    0.630    </span></span>
+<span id="cb4-23"><a href="#cb4-23"></a><span class="co">#&gt; ---</span></span>
+<span id="cb4-24"><a href="#cb4-24"></a><span class="co">#&gt; Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</span></span>
+<span id="cb4-25"><a href="#cb4-25"></a><span class="co">#&gt; </span></span>
+<span id="cb4-26"><a href="#cb4-26"></a><span class="co">#&gt; </span></span>
+<span id="cb4-27"><a href="#cb4-27"></a><span class="co">#&gt; Residual standard error: 0.08913 on 96.16244 degrees of freedom</span></span>
+<span id="cb4-28"><a href="#cb4-28"></a><span class="co">#&gt; Multiple R-Squared: 0.3864,  Adjusted R-squared: 0.3747 </span></span>
+<span id="cb4-29"><a href="#cb4-29"></a><span class="co">#&gt; F-statistic: 32.95 on 1.837559 and 96.16244 DF,  p-value: 4.725e-11 </span></span>
+<span id="cb4-30"><a href="#cb4-30"></a><span class="co">#&gt; </span></span>
+<span id="cb4-31"><a href="#cb4-31"></a><span class="co">#&gt; </span></span>
+<span id="cb4-32"><a href="#cb4-32"></a><span class="co">#&gt; Estimation results for equation y2: </span></span>
+<span id="cb4-33"><a href="#cb4-33"></a><span class="co">#&gt; =================================== </span></span>
+<span id="cb4-34"><a href="#cb4-34"></a><span class="co">#&gt; y2 = y1.l1 + y2.l1 + const </span></span>
+<span id="cb4-35"><a href="#cb4-35"></a><span class="co">#&gt; </span></span>
+<span id="cb4-36"><a href="#cb4-36"></a><span class="co">#&gt;       Estimate Std. Error t value Pr(&gt;|t|)    </span></span>
+<span id="cb4-37"><a href="#cb4-37"></a><span class="co">#&gt; y1.l1  0.11955    0.08632   1.385 0.169249    </span></span>
+<span id="cb4-38"><a href="#cb4-38"></a><span class="co">#&gt; y2.l1  0.32546    0.08534   3.814 0.000242 ***</span></span>
+<span id="cb4-39"><a href="#cb4-39"></a><span class="co">#&gt; const  0.90555    0.12308   7.357  6.3e-11 ***</span></span>
+<span id="cb4-40"><a href="#cb4-40"></a><span class="co">#&gt; ---</span></span>
+<span id="cb4-41"><a href="#cb4-41"></a><span class="co">#&gt; Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</span></span>
+<span id="cb4-42"><a href="#cb4-42"></a><span class="co">#&gt; </span></span>
+<span id="cb4-43"><a href="#cb4-43"></a><span class="co">#&gt; </span></span>
+<span id="cb4-44"><a href="#cb4-44"></a><span class="co">#&gt; Residual standard error: 0.1008 on 96.16244 degrees of freedom</span></span>
+<span id="cb4-45"><a href="#cb4-45"></a><span class="co">#&gt; Multiple R-Squared: 0.1219,  Adjusted R-squared: 0.1051 </span></span>
+<span id="cb4-46"><a href="#cb4-46"></a><span class="co">#&gt; F-statistic: 7.263 on 1.837559 and 96.16244 DF,  p-value: 0.00157 </span></span>
+<span id="cb4-47"><a href="#cb4-47"></a><span class="co">#&gt; </span></span>
+<span id="cb4-48"><a href="#cb4-48"></a><span class="co">#&gt; </span></span>
+<span id="cb4-49"><a href="#cb4-49"></a><span class="co">#&gt; </span></span>
+<span id="cb4-50"><a href="#cb4-50"></a><span class="co">#&gt; Scale matrix, Sigma, of multivariate t distribution for noise:</span></span>
+<span id="cb4-51"><a href="#cb4-51"></a><span class="co">#&gt;            y1         y2</span></span>
+<span id="cb4-52"><a href="#cb4-52"></a><span class="co">#&gt; y1  0.0077160 -0.0006829</span></span>
+<span id="cb4-53"><a href="#cb4-53"></a><span class="co">#&gt; y2 -0.0006829  0.0098611</span></span>
+<span id="cb4-54"><a href="#cb4-54"></a><span class="co">#&gt; </span></span>
+<span id="cb4-55"><a href="#cb4-55"></a><span class="co">#&gt; Degrees of freedom of multivariate t distribution for noise:</span></span>
+<span id="cb4-56"><a href="#cb4-56"></a><span class="co">#&gt; [1] Inf</span></span>
+<span id="cb4-57"><a href="#cb4-57"></a><span class="co">#&gt; </span></span>
+<span id="cb4-58"><a href="#cb4-58"></a><span class="co">#&gt; Correlation matrix of Sigma:</span></span>
+<span id="cb4-59"><a href="#cb4-59"></a><span class="co">#&gt;          y1       y2</span></span>
+<span id="cb4-60"><a href="#cb4-60"></a><span class="co">#&gt; y1  1.00000 -0.07829</span></span>
+<span id="cb4-61"><a href="#cb4-61"></a><span class="co">#&gt; y2 -0.07829  1.00000</span></span></code></pre></div>
+</div>
+<div id="nonparametric-shrinkage-ns" class="section level2">
+<h2><span class="header-section-number">3.2</span> Nonparametric Shrinkage (NS)</h2>
+<p>The nonparametric shrinkage (NS) estimation method for VAR models, proposed by <span class="citation">Opgen-Rhein and Strimmer (2007b)</span>, produces an estimate of <span class="math inline">\(\mathbf{\Psi}\)</span> based on a James-Stein type shrinkage of sample covariance matrices <span class="citation">(Opgen-Rhein and Strimmer 2007a; Schäfer and Strimmer 2005)</span>.</p>
+<p>We will briefly describe the NS method. In the NS method, the data matrices <span class="math inline">\(\mathbf{X}\)</span> and <span class="math inline">\(\mathbf{Y}\)</span> are mean-corrected so that each column has the mean of zero. Let <span class="math inline">\(\mathbf{Z} = [\mathbf{X}, \mathbf{Y}] \in \mathbb{R}^{N \times (Kp + K + L)}\)</span> be a combined data matrix. The sample covariance matrix of <span class="math inline">\(\mathbf{Z}\)</span> is partitioned as <span class="math display">\[\begin{equation}
+    \mathbf{S}_\text{ZZ} = \frac{1}{N - 1} \mathbf{Z}^\top \mathbf{Z} =
+    \begin{bmatrix} \mathbf{S}_\text{XX} &amp; \mathbf{S}_\text{XY} \\
+    \mathbf{S}_\text{XY}^\top &amp; \mathbf{S}_\text{YY}
+    \end{bmatrix}
+    \in \mathbb{R}^{(Kp + K + L) \times (Kp + K + L)},
+    \end{equation}\]</span> where <span class="math inline">\(\mathbf{S}_\text{XX} = (N - 1)^{-1} \mathbf{X}^\top \mathbf{X}\)</span>, <span class="math inline">\(\mathbf{S}_\text{XY} = (N - 1)^{-1} \mathbf{X}^\top \mathbf{Y}\)</span>, and <span class="math inline">\(\mathbf{S}_\text{YY} = (N - 1)^{-1} \mathbf{Y}^\top \mathbf{Y}\)</span>. The matrix <span class="math inline">\(\mathbf{S}_\text{ZZ}\)</span> can be decomposed as <span class="math display">\[\begin{equation}
+    \mathbf{S}_\text{ZZ} = \mathbf{D}_\text{Z}^{1/2} \mathbf{R}_\text{ZZ} \mathbf{D}_\text{Z}^{1/2},
+    \end{equation}\]</span> where <span class="math inline">\(\mathbf{R}_\text{ZZ}\)</span> is the sample correlation matrix and <span class="math inline">\(\mathbf{D}_\text{Z} = \text{diag}(s_{11}, s_{22}, \ldots, s_{Kp + K + L, Kp + K + L})\)</span> is a diagonal matrix with diagonal elements of sample variances. Shrinkage estimates of the correlation matrix and the variances can be written as <span class="math display">\[\begin{equation}
+    \widehat{\mathbf{R}}_\text{ZZ} =
+    (1-\lambda) \mathbf{R}_\text{ZZ} + \lambda \mathbf{I}
+    \quad
+    \text{and}
+    \quad
+    \widehat{\mathbf{D}}_\text{Z} =
+    \text{diag}(\hat{s}_{11}, \hat{s}_{22}, \ldots, \hat{s}_{Kp+K+L,Kp+K+L})
+    \end{equation}\]</span> with <span class="math display">\[\begin{equation}
+    \hat{s}_{ii} = (1-\lambda_v) s_{ii} + \lambda_v s_\text{med},
+    \quad i = 1, 2, \ldots, Kp + K + L,
+    \end{equation}\]</span> where <span class="math inline">\(s_\text{med}\)</span> is a median of all the sample variances <span class="math inline">\(s_{ii}\)</span>, and <span class="math inline">\(0\leq \lambda, \lambda_v \leq 1\)</span> are shrinkage parameters. The estimated covariance matrix can be computed by <span class="math display">\[\begin{equation}
+    \widehat{\mathbf{S}}_\text{ZZ}(\lambda, \lambda_v)
+    =  \widehat{\mathbf{D}}_\text{Z}^{1/2}
+    \widehat{\mathbf{R}}_\text{ZZ}
+    \widehat{\mathbf{D}}_\text{Z}^{1/2}.
+    \end{equation}\]</span> The values of the shrinkage parameters <span class="math inline">\(\lambda\)</span> and <span class="math inline">\(\lambda_v\)</span> are determined by the James-Stein type shrinkage method, which we call the NS method described in <span class="citation">(Opgen-Rhein and Strimmer 2007a; Schäfer and Strimmer 2005)</span>.</p>
+<p>The ordinary least squares estimate <span class="math inline">\(\widehat{\mathbf{\Psi}}^{\text{OLS}}\)</span> of <span class="math inline">\(\mathbf{\Psi}\)</span> is given by <span class="math inline">\(\widehat{\mathbf{\Psi}}^{\text{OLS}} = \mathbf{S}_\text{XX}^{-1} \mathbf{S}_\text{XY}\)</span>. We define the NS estimate of <span class="math inline">\(\mathbf{\Psi}\)</span> as <span class="math display">\[\begin{equation}
+    \widehat{ \mathbf{\Psi} }^\text{N} (\lambda, \lambda_v) =
+    \widehat{\mathbf{S}}_\text{XX}^{-1}
+    \widehat{\mathbf{S}}_\text{XY},
+    \qquad
+    0\leq \lambda, \lambda_v \leq 1.
+    \end{equation}\]</span> where <span class="math inline">\(\widehat{\mathbf{S}}_\text{XX}\)</span> and <span class="math inline">\(\widehat{\mathbf{S}}_\text{XY}\)</span> are parts of the estimated covariance matrix, <span class="math display">\[\begin{equation}
+    \widehat{\mathbf{S}}_\text{ZZ} (\lambda, \lambda_v) =
+    \begin{bmatrix} \widehat{\mathbf{S}}_\text{XX} &amp; \widehat{\mathbf{S}}_\text{XY} \\
+    \widehat{\mathbf{S}}_\text{XY}^\top &amp; \widehat{\mathbf{S}}_\text{YY}
+    \end{bmatrix}.
+    \end{equation}\]</span></p>
+<p>In the package <strong>VARshrink</strong>, the function <code>VARshrink(method = &quot;ns&quot;, ...)</code> provides an interface with the NS method. In specific, the package <strong>corpcor</strong> <span class="citation">(Schäfer et al. 2017)</span> includes the <span style="font-family:Helvetica">R</span> function <code>cov.shrink()</code>, which can determine <span class="math inline">\(\lambda\)</span> and <span class="math inline">\(\lambda_v\)</span> and estimate the covariance matrix <span class="math inline">\(\widehat{\mathbf{S}}_\text{ZZ}(\lambda, \lambda_v)\)</span>. The function <code>VARshrink()</code> in the <strong>VARshrink</strong> package infers the NS estimates of VAR coefficients, <span class="math inline">\(\widehat{\mathbf{\Psi}}^\text{N} (\lambda, \lambda_v)\)</span>, by using the covariance matrix <span class="math inline">\(\widehat{\mathbf{S}}_\text{ZZ}(\lambda, \lambda_v)\)</span>. If the input arguments <code>lambda</code> and <code>lambda_var</code> are set as <code>lambda = NULL</code> and <code>lambda_var = NULL</code>, then <span class="math inline">\(\lambda\)</span> and <span class="math inline">\(\lambda_v\)</span> are determined automatically. We can find the estimated <span class="math inline">\(\lambda\)</span> and <span class="math inline">\(\lambda_v\)</span> values on the printed screen. For example,</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1"></a>resu_estim<span class="op">$</span><span class="st">`</span><span class="dt">Nonparametric shrinkage</span><span class="st">`</span> &lt;-</span>
+<span id="cb5-2"><a href="#cb5-2"></a><span class="st">  </span><span class="kw">VARshrink</span>(Y, <span class="dt">p =</span> <span class="dv">1</span>, <span class="dt">type =</span> <span class="st">&quot;const&quot;</span>, <span class="dt">method =</span> <span class="st">&quot;ns&quot;</span>,</span>
+<span id="cb5-3"><a href="#cb5-3"></a>                    <span class="dt">lambda =</span> <span class="ot">NULL</span>, <span class="dt">lambda_var =</span> <span class="ot">NULL</span>)</span>
+<span id="cb5-4"><a href="#cb5-4"></a><span class="co">#&gt; Warning in VARshrink(Y, p = 1, type = &quot;const&quot;, method = &quot;ns&quot;, lambda =</span></span>
+<span id="cb5-5"><a href="#cb5-5"></a><span class="co">#&gt; NULL, : &#39;ns&#39; method does not allow type=&#39;const&#39;.. changed to &#39;none&#39;.</span></span>
+<span id="cb5-6"><a href="#cb5-6"></a>resu_estim<span class="op">$</span><span class="st">`</span><span class="dt">Nonparametric shrinkage</span><span class="st">`</span></span>
+<span id="cb5-7"><a href="#cb5-7"></a><span class="co">#&gt; </span></span>
+<span id="cb5-8"><a href="#cb5-8"></a><span class="co">#&gt; VAR Shrinkage Estimation Results:</span></span>
+<span id="cb5-9"><a href="#cb5-9"></a><span class="co">#&gt; ================================= </span></span>
+<span id="cb5-10"><a href="#cb5-10"></a><span class="co">#&gt; </span></span>
+<span id="cb5-11"><a href="#cb5-11"></a><span class="co">#&gt; Estimated coefficients for equation y1: </span></span>
+<span id="cb5-12"><a href="#cb5-12"></a><span class="co">#&gt; ======================================= </span></span>
+<span id="cb5-13"><a href="#cb5-13"></a><span class="co">#&gt; Call:</span></span>
+<span id="cb5-14"><a href="#cb5-14"></a><span class="co">#&gt; y1 = y1.l1 + y2.l1 </span></span>
+<span id="cb5-15"><a href="#cb5-15"></a><span class="co">#&gt; </span></span>
+<span id="cb5-16"><a href="#cb5-16"></a><span class="co">#&gt;      y1.l1      y2.l1 </span></span>
+<span id="cb5-17"><a href="#cb5-17"></a><span class="co">#&gt; 0.56430137 0.06139375 </span></span>
+<span id="cb5-18"><a href="#cb5-18"></a><span class="co">#&gt; </span></span>
+<span id="cb5-19"><a href="#cb5-19"></a><span class="co">#&gt; </span></span>
+<span id="cb5-20"><a href="#cb5-20"></a><span class="co">#&gt; Estimated coefficients for equation y2: </span></span>
+<span id="cb5-21"><a href="#cb5-21"></a><span class="co">#&gt; ======================================= </span></span>
+<span id="cb5-22"><a href="#cb5-22"></a><span class="co">#&gt; Call:</span></span>
+<span id="cb5-23"><a href="#cb5-23"></a><span class="co">#&gt; y2 = y1.l1 + y2.l1 </span></span>
+<span id="cb5-24"><a href="#cb5-24"></a><span class="co">#&gt; </span></span>
+<span id="cb5-25"><a href="#cb5-25"></a><span class="co">#&gt;     y1.l1     y2.l1 </span></span>
+<span id="cb5-26"><a href="#cb5-26"></a><span class="co">#&gt; 0.1080570 0.2537706 </span></span>
+<span id="cb5-27"><a href="#cb5-27"></a><span class="co">#&gt; </span></span>
+<span id="cb5-28"><a href="#cb5-28"></a><span class="co">#&gt; </span></span>
+<span id="cb5-29"><a href="#cb5-29"></a><span class="co">#&gt; lambda: 0.104881997093098 (estimated: TRUE) </span></span>
+<span id="cb5-30"><a href="#cb5-30"></a><span class="co">#&gt; lambda_var: 1 (estimated: TRUE)</span></span></code></pre></div>
+<p>The <code>summary()</code> shows statistical inference on the estimated VAR coefficients together with the estimated scale matrix <span class="math inline">\(\mathbf{\Sigma}\)</span> of multivariate t-distribution for noise.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1"></a><span class="kw">summary</span>(resu_estim<span class="op">$</span><span class="st">`</span><span class="dt">Nonparametric shrinkage</span><span class="st">`</span>)</span>
+<span id="cb6-2"><a href="#cb6-2"></a><span class="co">#&gt; </span></span>
+<span id="cb6-3"><a href="#cb6-3"></a><span class="co">#&gt; VAR Shrinkage Estimation Results:</span></span>
+<span id="cb6-4"><a href="#cb6-4"></a><span class="co">#&gt; =================================== </span></span>
+<span id="cb6-5"><a href="#cb6-5"></a><span class="co">#&gt; Endogenous variables: y1, y2 </span></span>
+<span id="cb6-6"><a href="#cb6-6"></a><span class="co">#&gt; Deterministic variables: none </span></span>
+<span id="cb6-7"><a href="#cb6-7"></a><span class="co">#&gt; Sample size: 99 </span></span>
+<span id="cb6-8"><a href="#cb6-8"></a><span class="co">#&gt; Log Likelihood: 188.443 </span></span>
+<span id="cb6-9"><a href="#cb6-9"></a><span class="co">#&gt; Roots of the characteristic polynomial:</span></span>
+<span id="cb6-10"><a href="#cb6-10"></a><span class="co">#&gt; 0.5844 0.2337</span></span>
+<span id="cb6-11"><a href="#cb6-11"></a><span class="co">#&gt; Call:</span></span>
+<span id="cb6-12"><a href="#cb6-12"></a><span class="co">#&gt; VARshrink(y = Y, p = 1, type = &quot;const&quot;, method = &quot;ns&quot;, lambda = NULL, </span></span>
+<span id="cb6-13"><a href="#cb6-13"></a><span class="co">#&gt;     lambda_var = NULL)</span></span>
+<span id="cb6-14"><a href="#cb6-14"></a><span class="co">#&gt; </span></span>
+<span id="cb6-15"><a href="#cb6-15"></a><span class="co">#&gt; </span></span>
+<span id="cb6-16"><a href="#cb6-16"></a><span class="co">#&gt; Estimation results for equation y1: </span></span>
+<span id="cb6-17"><a href="#cb6-17"></a><span class="co">#&gt; =================================== </span></span>
+<span id="cb6-18"><a href="#cb6-18"></a><span class="co">#&gt; y1 = y1.l1 + y2.l1 </span></span>
+<span id="cb6-19"><a href="#cb6-19"></a><span class="co">#&gt; </span></span>
+<span id="cb6-20"><a href="#cb6-20"></a><span class="co">#&gt;       Estimate Std. Error t value Pr(&gt;|t|)    </span></span>
+<span id="cb6-21"><a href="#cb6-21"></a><span class="co">#&gt; y1.l1 0.564301   0.007754  72.775  &lt; 2e-16 ***</span></span>
+<span id="cb6-22"><a href="#cb6-22"></a><span class="co">#&gt; y2.l1 0.061394   0.007315   8.393 3.47e-13 ***</span></span>
+<span id="cb6-23"><a href="#cb6-23"></a><span class="co">#&gt; ---</span></span>
+<span id="cb6-24"><a href="#cb6-24"></a><span class="co">#&gt; Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</span></span>
+<span id="cb6-25"><a href="#cb6-25"></a><span class="co">#&gt; </span></span>
+<span id="cb6-26"><a href="#cb6-26"></a><span class="co">#&gt; </span></span>
+<span id="cb6-27"><a href="#cb6-27"></a><span class="co">#&gt; Residual standard error: 0.08828 on 98.81547 degrees of freedom</span></span>
+<span id="cb6-28"><a href="#cb6-28"></a><span class="co">#&gt; Multiple R-Squared: 0.3446</span></span>
+<span id="cb6-29"><a href="#cb6-29"></a><span class="co">#&gt; Warning in pf(result$fstatistic[1L], result$fstatistic[2L],</span></span>
+<span id="cb6-30"><a href="#cb6-30"></a><span class="co">#&gt; result$fstatistic[3L], : NaNs produced</span></span>
+<span id="cb6-31"><a href="#cb6-31"></a><span class="co">#&gt; ,    Adjusted R-squared:  0.35 </span></span>
+<span id="cb6-32"><a href="#cb6-32"></a><span class="co">#&gt; F-statistic: -63.71 on -0.8154669 and 98.81547 DF,  p-value: NA </span></span>
+<span id="cb6-33"><a href="#cb6-33"></a><span class="co">#&gt; </span></span>
+<span id="cb6-34"><a href="#cb6-34"></a><span class="co">#&gt; </span></span>
+<span id="cb6-35"><a href="#cb6-35"></a><span class="co">#&gt; Estimation results for equation y2: </span></span>
+<span id="cb6-36"><a href="#cb6-36"></a><span class="co">#&gt; =================================== </span></span>
+<span id="cb6-37"><a href="#cb6-37"></a><span class="co">#&gt; y2 = y1.l1 + y2.l1 </span></span>
+<span id="cb6-38"><a href="#cb6-38"></a><span class="co">#&gt; </span></span>
+<span id="cb6-39"><a href="#cb6-39"></a><span class="co">#&gt;       Estimate Std. Error t value Pr(&gt;|t|)    </span></span>
+<span id="cb6-40"><a href="#cb6-40"></a><span class="co">#&gt; y1.l1 0.108057   0.008725   12.38   &lt;2e-16 ***</span></span>
+<span id="cb6-41"><a href="#cb6-41"></a><span class="co">#&gt; y2.l1 0.253771   0.008231   30.83   &lt;2e-16 ***</span></span>
+<span id="cb6-42"><a href="#cb6-42"></a><span class="co">#&gt; ---</span></span>
+<span id="cb6-43"><a href="#cb6-43"></a><span class="co">#&gt; Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</span></span>
+<span id="cb6-44"><a href="#cb6-44"></a><span class="co">#&gt; </span></span>
+<span id="cb6-45"><a href="#cb6-45"></a><span class="co">#&gt; </span></span>
+<span id="cb6-46"><a href="#cb6-46"></a><span class="co">#&gt; Residual standard error: 0.09933 on 98.81547 degrees of freedom</span></span>
+<span id="cb6-47"><a href="#cb6-47"></a><span class="co">#&gt; Multiple R-Squared: 0.08139</span></span>
+<span id="cb6-48"><a href="#cb6-48"></a><span class="co">#&gt; Warning in pf(result$fstatistic[1L], result$fstatistic[2L],</span></span>
+<span id="cb6-49"><a href="#cb6-49"></a><span class="co">#&gt; result$fstatistic[3L], : NaNs produced</span></span>
+<span id="cb6-50"><a href="#cb6-50"></a><span class="co">#&gt; ,    Adjusted R-squared: 0.08897 </span></span>
+<span id="cb6-51"><a href="#cb6-51"></a><span class="co">#&gt; F-statistic: -10.74 on -0.8154669 and 98.81547 DF,  p-value: NA </span></span>
+<span id="cb6-52"><a href="#cb6-52"></a><span class="co">#&gt; </span></span>
+<span id="cb6-53"><a href="#cb6-53"></a><span class="co">#&gt; </span></span>
+<span id="cb6-54"><a href="#cb6-54"></a><span class="co">#&gt; </span></span>
+<span id="cb6-55"><a href="#cb6-55"></a><span class="co">#&gt; Scale matrix, Sigma, of multivariate t distribution for noise:</span></span>
+<span id="cb6-56"><a href="#cb6-56"></a><span class="co">#&gt;            y1         y2</span></span>
+<span id="cb6-57"><a href="#cb6-57"></a><span class="co">#&gt; y1  0.0077791 -0.0006733</span></span>
+<span id="cb6-58"><a href="#cb6-58"></a><span class="co">#&gt; y2 -0.0006733  0.0098486</span></span>
+<span id="cb6-59"><a href="#cb6-59"></a><span class="co">#&gt; </span></span>
+<span id="cb6-60"><a href="#cb6-60"></a><span class="co">#&gt; Degrees of freedom of multivariate t distribution for noise:</span></span>
+<span id="cb6-61"><a href="#cb6-61"></a><span class="co">#&gt; [1] Inf</span></span>
+<span id="cb6-62"><a href="#cb6-62"></a><span class="co">#&gt; </span></span>
+<span id="cb6-63"><a href="#cb6-63"></a><span class="co">#&gt; Correlation matrix of Sigma:</span></span>
+<span id="cb6-64"><a href="#cb6-64"></a><span class="co">#&gt;          y1       y2</span></span>
+<span id="cb6-65"><a href="#cb6-65"></a><span class="co">#&gt; y1  1.00000 -0.07693</span></span>
+<span id="cb6-66"><a href="#cb6-66"></a><span class="co">#&gt; y2 -0.07693  1.00000</span></span></code></pre></div>
+</div>
+<div id="full-bayesian-shrinkage" class="section level2">
+<h2><span class="header-section-number">3.3</span> Full Bayesian Shrinkage</h2>
+<p><span class="citation">Ni and Sun (2005)</span> and <span class="citation">Sun and Ni (2004)</span> studied Bayesian estimation methods using noninformative priors for VAR models, where they used Markov Chain Monte Carlo (MCMC) methods for estimating coefficient matrices, noise covariance matrices, and other hyperparameters in Bayesian VAR models. In <span class="citation">Ni and Sun (2005)</span>, various Bayesian estimators were compared using several types of loss functions, noninformative priors, and multivariate normal and t-distributions. Among them, Bayesian estimators using a certain type of noninformative priors showed higher accuracies than the other Bayesian estimators in simulated experiments. The noninformative prior for coefficient matrices was called the shrinkage prior, and the prior for the noise covariance matrix was called the reference prior.</p>
+<p>In the package <strong>VARshrink</strong>, we can obtain Bayesian estimators using the shrinkage prior and the reference prior, which are the noninformative priors that yielded the highest accuracies in the simulation results <span class="citation">(Ni and Sun 2005)</span>. As a Bayesian estimator of VAR parameters, the minimizer of the posterior expectation of quadratic loss is computed, which is the mean of the posterior distribution. Additionally, the minimizer of the posterior expectation of LINEX loss is also computed <span class="citation">(Ni and Sun 2005; Zellner 1986)</span>. In this section, we will explain the model assumptions in more detail.</p>
+<p>First, the noise vectors are independent and identically distributed from multivariate t-distributions with the degree of freedom <span class="math inline">\(\nu\)</span>, i.e., <span class="math inline">\(\boldsymbol\epsilon_t \sim t_\nu (\mathbf{0}, \mathbf{\Sigma})\)</span>. It can be expressed as a hierarchical model as <span class="math display">\[\begin{equation}
+    \begin{split}
+    ( \boldsymbol\epsilon_t | q_t )    &amp; \sim \text{N}_K (\mathbf{0}, q_t^{-1} \mathbf{\Sigma}).
+    \qquad\qquad\qquad (7)
+    \\
+    q_t     &amp; \sim \text{Gamma}(\nu/2, \nu/2).
+    \end{split}
+    \end{equation}\]</span></p>
+<p>Second, we denote the vectorized version of <span class="math inline">\(\mathbf{\Psi} \in\mathbb{R}^{(J/K)\times K}\)</span> by <span class="math inline">\(\boldsymbol\psi = \text{vec}(\mathbf{\Psi}) \in\mathbb{R}^{J}\)</span>. Here <span class="math inline">\(J = K (Kp + L)\)</span>. The shrinkage prior <span class="math inline">\(\pi_\text{S}(\boldsymbol\psi)\)</span> for <span class="math inline">\(\boldsymbol\psi \in\mathbb{R}^{J}\)</span> is taken as <span class="math inline">\(\pi_\text{S}(\boldsymbol\psi) \propto \left\| \boldsymbol\psi \right\|^{ -(J-2) }.\)</span> By introducing a latent variable <span class="math inline">\(\lambda&gt;0\)</span>, the shrinkage prior can also be expressed as a scale mixture of multivariate normals as <span class="math display">\[\begin{equation}
+    \begin{split}
+    (\boldsymbol\psi | \lambda)    &amp; \sim \text{N}_{J} (\mathbf{0}, \lambda^{-1} \mathbf{I}_J),
+    \qquad\qquad\qquad (8)
+    \\
+    \pi (\lambda)   &amp; \propto 1.
+    \end{split}
+    \end{equation}\]</span></p>
+<p>Third, the reference prior <span class="math inline">\(\pi_\text{R}(\mathbf{\Sigma})\)</span> for <span class="math inline">\(\mathbf{\Sigma}\)</span> is taken as <span class="math display">\[\begin{equation}
+    \pi_\text{R}(\mathbf{\Sigma}) \propto \left| \mathbf{\Sigma} \right|^{-1} \prod_{1\leq i\leq j\leq K} (\lambda_i - \lambda_j)^{-1},
+    \end{equation}\]</span> where <span class="math inline">\(\lambda_1 &gt; \lambda_2 &gt; \cdots &gt; \lambda_K\)</span> are eigenvalues of <span class="math inline">\(\mathbf{\Sigma}\)</span>.</p>
+<p>Note that no hyperparameters are involved in the shrinkage prior and the reference prior, since they are noninformative priors. The Gibbs MCMC method makes use of the hierarchical expression of <span class="math inline">\(\boldsymbol\epsilon_t\)</span>. The Gibbs MCMC samples the parameters <span class="math inline">\((\boldsymbol\psi, \lambda, \mathbf{\Sigma}, \mathbf{Q}, \nu)\)</span> with <span class="math inline">\(\mathbf{Q} = \text{diag}(q_{p+1}, \ldots, q_T)\)</span> from conditional posterior distributions <span class="citation">(Ni and Sun 2005)</span>. We remark that the mean of the conditional posterior distribution, <span class="math inline">\(\pi(\boldsymbol\psi | \lambda, \mathbf{\Sigma}, \mathbf{Q}, \nu; \mathbf{Y})\)</span> of <span class="math inline">\(\boldsymbol\psi\)</span> is given by <span class="math display">\[\begin{equation}
+    \widehat{\boldsymbol\psi}^{F} (\lambda)  = \left[\left(\mathbf{\Sigma}^{-1} \otimes \left( \mathbf{X}^\top \mathbf{Q} \mathbf{X} \right) \right) + \lambda \mathbf{I}_J     \right]^{-1} \text{vec}\left( \mathbf{X}^\top \mathbf{Q} \mathbf{Y} \mathbf{\Sigma}^{-1} \right), 
+    \qquad
+    \lambda &gt; 0.
+    \qquad\qquad\qquad (9)
+    \end{equation}\]</span> Note that if <span class="math inline">\(\mathbf{\Sigma} = \mathbf{I}_K\)</span> and <span class="math inline">\(q_{p+1}=\cdots=q_T = 1\)</span>, then the estimator becomes the ridge regression estimator. That is, Bayesian shrinkage estimators have more flexible and abundant expressions, even though more computational effort is required to estimate more parameters.</p>
+<p>In the package <strong>VARshrink</strong>, the function <code>VARshrink(method = &quot;fbayes&quot;, ...)</code> plays the role as an interface with the full Bayesian shrinkage method with the shrinkage prior and the reference prior. The shrinkage parameter <span class="math inline">\(\lambda\)</span> is not set at a fixed value, i.e., the arguments <code>lambda</code> and <code>lambda_var</code> are of no use here. Instead, the mean of the posterior distribution, <span class="math inline">\(\hat{\delta} = \mathbb{E}\left[ \lambda^{-1} | \mathbf{Y} \right]\)</span> is estimated during the MCMC process <span class="citation">(Ni and Sun 2005)</span>, and we define <span class="math inline">\(\hat{\lambda} = \hat{\delta}^{-1}\)</span>. There are several arguments to be specified as follows.</p>
+<ul>
+<li><p><code>dof</code>: If <code>dof = Inf</code>, then a multivariate normal distribution is applied and and the weight <span class="math inline">\(\mathbf{Q}\)</span> is not estimated. If <code>dof</code> is a finite value, then we apply the multivariate t-distribution with a fixed degree of freedom <span class="math inline">\(\nu=\)</span> <code>dof</code> and estimate <span class="math inline">\(\mathbf{Q}\)</span>. If <code>dof = NULL</code>, we estimate both the degree of freedom <span class="math inline">\(\nu\)</span> and the weight <span class="math inline">\(\mathbf{Q}\)</span>. In this case, the package <strong>ars</strong> is required for sampling the parameter <span class="math inline">\(\nu\)</span> from its conditional posterior distribution.</p></li>
+<li><p><code>burnincycle, mcmccycle</code>: The Gibbs MCMC method samples a series of parameter values of the length, <code>burnincycle + mcmccycle</code>. <code>burnincycle</code> is the number of sampled parameter values to be discarded in the beginning, and <code>mcmccycle</code> is the number to be attained and used for computing the parameter estimates. By default, we set <code>burnincycle = 1000</code> and <code>mcmccycle = 2000</code>.</p></li>
+</ul>
+<p>For example, we run the full Bayesian shrinkage method with a fixed <span class="math inline">\(\nu = 6\)</span> as follows.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1"></a>resu_estim<span class="op">$</span><span class="st">`</span><span class="dt">Full Bayes (fixed dof)</span><span class="st">`</span> &lt;-</span>
+<span id="cb7-2"><a href="#cb7-2"></a><span class="st">  </span><span class="kw">VARshrink</span>(Y, <span class="dt">p =</span> <span class="dv">1</span>, <span class="dt">type =</span> <span class="st">&quot;const&quot;</span>, <span class="dt">method =</span> <span class="st">&quot;fbayes&quot;</span>, <span class="dt">dof =</span> <span class="dv">6</span>,</span>
+<span id="cb7-3"><a href="#cb7-3"></a>                     <span class="dt">burnincycle =</span> <span class="dv">1000</span>, <span class="dt">mcmccycle =</span> <span class="dv">2000</span>)</span>
+<span id="cb7-4"><a href="#cb7-4"></a>resu_estim<span class="op">$</span><span class="st">`</span><span class="dt">Full Bayes (fixed dof)</span><span class="st">`</span></span>
+<span id="cb7-5"><a href="#cb7-5"></a><span class="co">#&gt; </span></span>
+<span id="cb7-6"><a href="#cb7-6"></a><span class="co">#&gt; VAR Shrinkage Estimation Results:</span></span>
+<span id="cb7-7"><a href="#cb7-7"></a><span class="co">#&gt; ================================= </span></span>
+<span id="cb7-8"><a href="#cb7-8"></a><span class="co">#&gt; </span></span>
+<span id="cb7-9"><a href="#cb7-9"></a><span class="co">#&gt; Estimated coefficients for equation y1: </span></span>
+<span id="cb7-10"><a href="#cb7-10"></a><span class="co">#&gt; ======================================= </span></span>
+<span id="cb7-11"><a href="#cb7-11"></a><span class="co">#&gt; Call:</span></span>
+<span id="cb7-12"><a href="#cb7-12"></a><span class="co">#&gt; y1 = y1.l1 + y2.l1 + const </span></span>
+<span id="cb7-13"><a href="#cb7-13"></a><span class="co">#&gt; </span></span>
+<span id="cb7-14"><a href="#cb7-14"></a><span class="co">#&gt;      y1.l1      y2.l1      const </span></span>
+<span id="cb7-15"><a href="#cb7-15"></a><span class="co">#&gt; 0.63856333 0.05398115 0.07042395 </span></span>
+<span id="cb7-16"><a href="#cb7-16"></a><span class="co">#&gt; </span></span>
+<span id="cb7-17"><a href="#cb7-17"></a><span class="co">#&gt; </span></span>
+<span id="cb7-18"><a href="#cb7-18"></a><span class="co">#&gt; Estimated coefficients for equation y2: </span></span>
+<span id="cb7-19"><a href="#cb7-19"></a><span class="co">#&gt; ======================================= </span></span>
+<span id="cb7-20"><a href="#cb7-20"></a><span class="co">#&gt; Call:</span></span>
+<span id="cb7-21"><a href="#cb7-21"></a><span class="co">#&gt; y2 = y1.l1 + y2.l1 + const </span></span>
+<span id="cb7-22"><a href="#cb7-22"></a><span class="co">#&gt; </span></span>
+<span id="cb7-23"><a href="#cb7-23"></a><span class="co">#&gt;     y1.l1     y2.l1     const </span></span>
+<span id="cb7-24"><a href="#cb7-24"></a><span class="co">#&gt; 0.1028193 0.3133995 0.9326989 </span></span>
+<span id="cb7-25"><a href="#cb7-25"></a><span class="co">#&gt; </span></span>
+<span id="cb7-26"><a href="#cb7-26"></a><span class="co">#&gt; </span></span>
+<span id="cb7-27"><a href="#cb7-27"></a><span class="co">#&gt; Sigma for noise:</span></span>
+<span id="cb7-28"><a href="#cb7-28"></a><span class="co">#&gt;               [,1]          [,2]</span></span>
+<span id="cb7-29"><a href="#cb7-29"></a><span class="co">#&gt; [1,]  0.0073772943 -0.0002864258</span></span>
+<span id="cb7-30"><a href="#cb7-30"></a><span class="co">#&gt; [2,] -0.0002864258  0.0079703260</span></span>
+<span id="cb7-31"><a href="#cb7-31"></a><span class="co">#&gt; dof for noise: 6 (estimated: FALSE) </span></span>
+<span id="cb7-32"><a href="#cb7-32"></a><span class="co">#&gt; lambda: 1.46381861993198 (estimated: TRUE)</span></span></code></pre></div>
+<p>By using <code>summary()</code>, we can find the estimated scale matrix <span class="math inline">\(\mathbf{\Sigma}\)</span> of multivariate t-distribution for noise.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1"></a><span class="kw">summary</span>(resu_estim<span class="op">$</span><span class="st">`</span><span class="dt">Full Bayes (fixed dof)</span><span class="st">`</span>)</span>
+<span id="cb8-2"><a href="#cb8-2"></a><span class="co">#&gt; </span></span>
+<span id="cb8-3"><a href="#cb8-3"></a><span class="co">#&gt; VAR Shrinkage Estimation Results:</span></span>
+<span id="cb8-4"><a href="#cb8-4"></a><span class="co">#&gt; =================================== </span></span>
+<span id="cb8-5"><a href="#cb8-5"></a><span class="co">#&gt; Endogenous variables: y1, y2 </span></span>
+<span id="cb8-6"><a href="#cb8-6"></a><span class="co">#&gt; Deterministic variables: const </span></span>
+<span id="cb8-7"><a href="#cb8-7"></a><span class="co">#&gt; Sample size: 99 </span></span>
+<span id="cb8-8"><a href="#cb8-8"></a><span class="co">#&gt; Log Likelihood: 184.085 </span></span>
+<span id="cb8-9"><a href="#cb8-9"></a><span class="co">#&gt; Roots of the characteristic polynomial:</span></span>
+<span id="cb8-10"><a href="#cb8-10"></a><span class="co">#&gt; 0.6548 0.2971</span></span>
+<span id="cb8-11"><a href="#cb8-11"></a><span class="co">#&gt; Call:</span></span>
+<span id="cb8-12"><a href="#cb8-12"></a><span class="co">#&gt; VARshrink(y = Y, p = 1, type = &quot;const&quot;, method = &quot;fbayes&quot;, dof = 6, </span></span>
+<span id="cb8-13"><a href="#cb8-13"></a><span class="co">#&gt;     burnincycle = 1000, mcmccycle = 2000)</span></span>
+<span id="cb8-14"><a href="#cb8-14"></a><span class="co">#&gt; </span></span>
+<span id="cb8-15"><a href="#cb8-15"></a><span class="co">#&gt; </span></span>
+<span id="cb8-16"><a href="#cb8-16"></a><span class="co">#&gt; Estimation results for equation y1: </span></span>
+<span id="cb8-17"><a href="#cb8-17"></a><span class="co">#&gt; =================================== </span></span>
+<span id="cb8-18"><a href="#cb8-18"></a><span class="co">#&gt; y1 = y1.l1 + y2.l1 + const </span></span>
+<span id="cb8-19"><a href="#cb8-19"></a><span class="co">#&gt; </span></span>
+<span id="cb8-20"><a href="#cb8-20"></a><span class="co">#&gt;       Estimate Std. Error t value Pr(&gt;|t|)    </span></span>
+<span id="cb8-21"><a href="#cb8-21"></a><span class="co">#&gt; y1.l1  0.63856    0.07898   8.085 1.87e-12 ***</span></span>
+<span id="cb8-22"><a href="#cb8-22"></a><span class="co">#&gt; y2.l1  0.05398    0.08314   0.649    0.518    </span></span>
+<span id="cb8-23"><a href="#cb8-23"></a><span class="co">#&gt; const  0.07042    0.12042   0.585    0.560    </span></span>
+<span id="cb8-24"><a href="#cb8-24"></a><span class="co">#&gt; ---</span></span>
+<span id="cb8-25"><a href="#cb8-25"></a><span class="co">#&gt; Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</span></span>
+<span id="cb8-26"><a href="#cb8-26"></a><span class="co">#&gt; </span></span>
+<span id="cb8-27"><a href="#cb8-27"></a><span class="co">#&gt; </span></span>
+<span id="cb8-28"><a href="#cb8-28"></a><span class="co">#&gt; Residual standard error: 0.08917 on 96.04011 degrees of freedom</span></span>
+<span id="cb8-29"><a href="#cb8-29"></a><span class="co">#&gt; Multiple R-Squared: 0.4031,  Adjusted R-squared: 0.391 </span></span>
+<span id="cb8-30"><a href="#cb8-30"></a><span class="co">#&gt; F-statistic:  33.1 on 1.959891 and 96.04011 DF,  p-value: 1.608e-11 </span></span>
+<span id="cb8-31"><a href="#cb8-31"></a><span class="co">#&gt; </span></span>
+<span id="cb8-32"><a href="#cb8-32"></a><span class="co">#&gt; </span></span>
+<span id="cb8-33"><a href="#cb8-33"></a><span class="co">#&gt; Estimation results for equation y2: </span></span>
+<span id="cb8-34"><a href="#cb8-34"></a><span class="co">#&gt; =================================== </span></span>
+<span id="cb8-35"><a href="#cb8-35"></a><span class="co">#&gt; y2 = y1.l1 + y2.l1 + const </span></span>
+<span id="cb8-36"><a href="#cb8-36"></a><span class="co">#&gt; </span></span>
+<span id="cb8-37"><a href="#cb8-37"></a><span class="co">#&gt;       Estimate Std. Error t value Pr(&gt;|t|)    </span></span>
+<span id="cb8-38"><a href="#cb8-38"></a><span class="co">#&gt; y1.l1   0.1028     0.0893   1.151  0.25242    </span></span>
+<span id="cb8-39"><a href="#cb8-39"></a><span class="co">#&gt; y2.l1   0.3134     0.0940   3.334  0.00122 ** </span></span>
+<span id="cb8-40"><a href="#cb8-40"></a><span class="co">#&gt; const   0.9327     0.1362   6.850 7.02e-10 ***</span></span>
+<span id="cb8-41"><a href="#cb8-41"></a><span class="co">#&gt; ---</span></span>
+<span id="cb8-42"><a href="#cb8-42"></a><span class="co">#&gt; Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</span></span>
+<span id="cb8-43"><a href="#cb8-43"></a><span class="co">#&gt; </span></span>
+<span id="cb8-44"><a href="#cb8-44"></a><span class="co">#&gt; </span></span>
+<span id="cb8-45"><a href="#cb8-45"></a><span class="co">#&gt; Residual standard error: 0.1008 on 96.04011 degrees of freedom</span></span>
+<span id="cb8-46"><a href="#cb8-46"></a><span class="co">#&gt; Multiple R-Squared: 0.1111,  Adjusted R-squared: 0.09297 </span></span>
+<span id="cb8-47"><a href="#cb8-47"></a><span class="co">#&gt; F-statistic: 6.125 on 1.959891 and 96.04011 DF,  p-value: 0.003331 </span></span>
+<span id="cb8-48"><a href="#cb8-48"></a><span class="co">#&gt; </span></span>
+<span id="cb8-49"><a href="#cb8-49"></a><span class="co">#&gt; </span></span>
+<span id="cb8-50"><a href="#cb8-50"></a><span class="co">#&gt; </span></span>
+<span id="cb8-51"><a href="#cb8-51"></a><span class="co">#&gt; Scale matrix, Sigma, of multivariate t distribution for noise:</span></span>
+<span id="cb8-52"><a href="#cb8-52"></a><span class="co">#&gt;            [,1]       [,2]</span></span>
+<span id="cb8-53"><a href="#cb8-53"></a><span class="co">#&gt; [1,]  0.0073773 -0.0002864</span></span>
+<span id="cb8-54"><a href="#cb8-54"></a><span class="co">#&gt; [2,] -0.0002864  0.0079703</span></span>
+<span id="cb8-55"><a href="#cb8-55"></a><span class="co">#&gt; </span></span>
+<span id="cb8-56"><a href="#cb8-56"></a><span class="co">#&gt; Degrees of freedom of multivariate t distribution for noise:</span></span>
+<span id="cb8-57"><a href="#cb8-57"></a><span class="co">#&gt; [1] 6</span></span>
+<span id="cb8-58"><a href="#cb8-58"></a><span class="co">#&gt; </span></span>
+<span id="cb8-59"><a href="#cb8-59"></a><span class="co">#&gt; Correlation matrix of Sigma:</span></span>
+<span id="cb8-60"><a href="#cb8-60"></a><span class="co">#&gt;          [,1]     [,2]</span></span>
+<span id="cb8-61"><a href="#cb8-61"></a><span class="co">#&gt; [1,]  1.00000 -0.03735</span></span>
+<span id="cb8-62"><a href="#cb8-62"></a><span class="co">#&gt; [2,] -0.03735  1.00000</span></span></code></pre></div>
+<p>Instead, we can estimate the degree of freedom, <span class="math inline">\(\nu\)</span>, of multivariate t-distribution by the argument <code>dof = NULL</code> as follows:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1"></a>resu_estim<span class="op">$</span><span class="st">`</span><span class="dt">Full Bayes (estim dof)</span><span class="st">`</span> &lt;-</span>
+<span id="cb9-2"><a href="#cb9-2"></a><span class="st">  </span><span class="kw">VARshrink</span>(Y, <span class="dt">p =</span> <span class="dv">1</span>, <span class="dt">type =</span> <span class="st">&quot;const&quot;</span>, <span class="dt">method =</span> <span class="st">&quot;fbayes&quot;</span>, <span class="dt">dof =</span> <span class="ot">NULL</span>,</span>
+<span id="cb9-3"><a href="#cb9-3"></a>            <span class="dt">burnincycle =</span> <span class="dv">1000</span>, <span class="dt">mcmccycle =</span> <span class="dv">2000</span>)</span>
+<span id="cb9-4"><a href="#cb9-4"></a>resu_estim<span class="op">$</span><span class="st">`</span><span class="dt">Full Bayes (estim dof)</span><span class="st">`</span></span>
+<span id="cb9-5"><a href="#cb9-5"></a><span class="co">#&gt; </span></span>
+<span id="cb9-6"><a href="#cb9-6"></a><span class="co">#&gt; VAR Shrinkage Estimation Results:</span></span>
+<span id="cb9-7"><a href="#cb9-7"></a><span class="co">#&gt; ================================= </span></span>
+<span id="cb9-8"><a href="#cb9-8"></a><span class="co">#&gt; </span></span>
+<span id="cb9-9"><a href="#cb9-9"></a><span class="co">#&gt; Estimated coefficients for equation y1: </span></span>
+<span id="cb9-10"><a href="#cb9-10"></a><span class="co">#&gt; ======================================= </span></span>
+<span id="cb9-11"><a href="#cb9-11"></a><span class="co">#&gt; Call:</span></span>
+<span id="cb9-12"><a href="#cb9-12"></a><span class="co">#&gt; y1 = y1.l1 + y2.l1 + const </span></span>
+<span id="cb9-13"><a href="#cb9-13"></a><span class="co">#&gt; </span></span>
+<span id="cb9-14"><a href="#cb9-14"></a><span class="co">#&gt;      y1.l1      y2.l1      const </span></span>
+<span id="cb9-15"><a href="#cb9-15"></a><span class="co">#&gt; 0.63942247 0.05771602 0.06449797 </span></span>
+<span id="cb9-16"><a href="#cb9-16"></a><span class="co">#&gt; </span></span>
+<span id="cb9-17"><a href="#cb9-17"></a><span class="co">#&gt; </span></span>
+<span id="cb9-18"><a href="#cb9-18"></a><span class="co">#&gt; Estimated coefficients for equation y2: </span></span>
+<span id="cb9-19"><a href="#cb9-19"></a><span class="co">#&gt; ======================================= </span></span>
+<span id="cb9-20"><a href="#cb9-20"></a><span class="co">#&gt; Call:</span></span>
+<span id="cb9-21"><a href="#cb9-21"></a><span class="co">#&gt; y2 = y1.l1 + y2.l1 + const </span></span>
+<span id="cb9-22"><a href="#cb9-22"></a><span class="co">#&gt; </span></span>
+<span id="cb9-23"><a href="#cb9-23"></a><span class="co">#&gt;     y1.l1     y2.l1     const </span></span>
+<span id="cb9-24"><a href="#cb9-24"></a><span class="co">#&gt; 0.1024030 0.3152221 0.9299175 </span></span>
+<span id="cb9-25"><a href="#cb9-25"></a><span class="co">#&gt; </span></span>
+<span id="cb9-26"><a href="#cb9-26"></a><span class="co">#&gt; </span></span>
+<span id="cb9-27"><a href="#cb9-27"></a><span class="co">#&gt; Sigma for noise:</span></span>
+<span id="cb9-28"><a href="#cb9-28"></a><span class="co">#&gt;               [,1]          [,2]</span></span>
+<span id="cb9-29"><a href="#cb9-29"></a><span class="co">#&gt; [1,]  0.0069592834 -0.0001524324</span></span>
+<span id="cb9-30"><a href="#cb9-30"></a><span class="co">#&gt; [2,] -0.0001524324  0.0079022459</span></span>
+<span id="cb9-31"><a href="#cb9-31"></a><span class="co">#&gt; dof for noise: 8.21302751071667 (estimated: TRUE) </span></span>
+<span id="cb9-32"><a href="#cb9-32"></a><span class="co">#&gt; lambda: 1.41018436005034 (estimated: TRUE)</span></span></code></pre></div>
+</div>
+<div id="sec:sbayes" class="section level2">
+<h2><span class="header-section-number">3.4</span> Semiparametric Bayesian Shrinkage</h2>
+<p>Whereas full Bayesian shrinkage methods estimate all the hyperparameters including latent variables via MCMC methods, semiparametric Bayesian methods estimate some of the hyperparameters by a certain nonparametric method and estimate the rest in a Bayesian framework. The semiparametric approach is advantageous especially when the dimensionality of the model is so high that standard MCMC methods are not computationally tractable.</p>
+<p><span class="citation">Lee, Choi, and Kim (2016)</span> assumed scale mixtures of multivariate normal distributions for noise vectors as in Eq. (7). The prior distribution for the model coefficients, <span class="math inline">\(\boldsymbol\psi = \text{vec}(\mathbf{\Psi})\)</span>, was set as multivariate normal distributions, similarly to Eq. (8). Here, we can choose either the conjugate prior (CJ) and non-conjugate (NCJ) prior as follows:</p>
+<ol style="list-style-type: lower-roman">
+<li><p>The conjugate prior for <span class="math inline">\(\boldsymbol\psi \in\mathbb{R}^J\)</span> is expressed by <span class="math display">\[\begin{equation}
+    (\boldsymbol\psi | \lambda, \mathbf{\Sigma})    \sim \text{N}_{J} \left(\mathbf{0}, \frac{1-\lambda}{(N - 1) \lambda} \mathbf{\Sigma} \otimes \mathbf{I} \right),
+    \qquad
+    0&lt;\lambda &lt; 1.
+    \end{equation}\]</span></p></li>
+<li><p>The non-conjugate prior for <span class="math inline">\(\boldsymbol\psi \in\mathbb{R}^J\)</span> is expressed by <span class="math display">\[\begin{equation}
+  (\boldsymbol\psi | \lambda)    \sim \text{N}_{J} \left(\mathbf{0}, \frac{1-\lambda}{(N - 1) \lambda} \mathbf{I}_J \right),
+  \qquad
+  0&lt;\lambda &lt; 1.
+  \end{equation}\]</span></p></li>
+</ol>
+<p>The scale matrix <span class="math inline">\(\mathbf{\Sigma}\)</span> for noise is included in the equation for conjugate prior distribution but not for the non-conjugate prior distribution. The non-conjugate prior is quite similar to the full Bayesian formulation in Eq. (8). However, the main difference is that, in the semiparametric Bayesian approach, the shrinkage parameter <span class="math inline">\(\lambda\)</span> should be estimated explicitly via a nonparametric method, but in the full Bayes approach, it is a latent variable which should be sampled and estimated implicitly via an MCMC method.</p>
+<p>The prior distribution for <span class="math inline">\(\mathbf\Sigma\)</span> was set as an inverse Wishart distribution as <span class="math display">\[\begin{equation}
+    (\mathbf{\Sigma} | \mathbf{L}_0, m_0) \sim
+    \text{InvWishart}( \mathbf{L}_0, m_0),
+    \qquad
+     \mathbf{L}_0 \succ \mathbf{0}, m_0 &gt; K - 1.
+    \end{equation}\]</span> where <span class="math inline">\(\mathbf{L}_0 \succ \mathbf{0}\)</span> means that <span class="math inline">\(\mathbf{L}_0\)</span> is positive definite.</p>
+<p>Once the shrinkage parameter <span class="math inline">\(\lambda\)</span> is set at a fixed value, the other parameters, <span class="math inline">\(\boldsymbol\psi, \mathbf{\Sigma}\)</span>, and <span class="math inline">\(\mathbf{Q}\)</span> can be estimated iteratively in a Bayesian framework efficiently. Briefly speaking, we consider estimating the parameters <span class="math inline">\(\boldsymbol\psi\)</span> and <span class="math inline">\(\mathbf{\Sigma}\)</span> at the maximum point (i.e., the mode) of the marginal posterior density function <span class="math inline">\(\pi (\boldsymbol\psi, \mathbf{\Sigma} | \lambda; \mathbf{Y})\)</span>. In the case of the non-conjugate prior, the mode, <span class="math inline">\((\widehat{\boldsymbol\psi}^\text{S} (\lambda), \widehat{\mathbf{\Sigma}}^\text{S} (\lambda))\)</span>, is expressed as <span class="math display">\[\begin{equation}
+    \widehat{\boldsymbol\psi}^{S} (\lambda)  =
+    \left[\left(  (\widehat{\mathbf{\Sigma}}^\text{S})^{-1} \otimes
+          \left( \mathbf{X}^\top \widehat{\mathbf{Q}}^\text{S} \mathbf{X} \right) \right) + \frac{ (N - 1) \lambda}{1-\lambda} \mathbf{I}_J     \right]^{-1}
+    \text{vec}\left( \mathbf{X}^\top \widehat{\mathbf{Q}}^\text{S} \mathbf{Y} ( \widehat{\mathbf{\Sigma}}^\text{S})^{-1} \right),
+    \qquad\qquad\qquad (10)
+    \end{equation}\]</span> and<br />
+<span class="math display">\[\begin{equation}
+    \widehat{\mathbf{\Sigma}}^\text{S} (\lambda) =
+    \frac{1}{m_0 + T + K + 1} \left(
+    \mathbf{L}_0 + \mathbf{Y}^\top \widehat{\mathbf{Q}} \mathbf{Y} -
+    \mathbf{Y}^\top \widehat{\mathbf{Q}} \mathbf{X} \widehat{\mathbf{\Psi}}^\text{S} (\lambda)
+    \right),
+    \end{equation}\]</span> for <span class="math inline">\(0&lt; \lambda &lt; 1\)</span>, where <span class="math inline">\(\widehat{\mathbf{Q}}^\text{S} = \text{diag}(\hat{q}_{p+1}, \ldots, \hat{q}_T)\)</span> is obtained in an iterative manner. The values <span class="math inline">\(\widehat{\mathbf{Q}}^\text{S}\)</span> is also expressed as <span class="math display">\[\begin{equation}
+    \hat{q}_t =
+    h \left( \left\| (\widehat{\mathbf{\Sigma}}^\text{S})^{-1/2} \hat{\boldsymbol\epsilon}_t \right\|^2 \right),
+    \qquad
+    t = p+1, \ldots, T,
+    \end{equation}\]</span> where <span class="math inline">\(h(x)\)</span> is defined depending on the noise distribution and <span class="math inline">\(\hat{\boldsymbol\epsilon}_t\)</span> is the residual given by <span class="math inline">\(\hat{\boldsymbol\epsilon}_t = \mathbf{y}_t - \widehat{\mathbf{\Psi}}^{\text{S}\top} \mathbf{x}_t\)</span> <span class="citation">(Lee, Choi, and Kim 2016)</span>.</p>
+<p>The shrinkage parameter <span class="math inline">\(\lambda\)</span> is determined via an internal nonparametric method, which is called the parameterized cross validation (PCV). This algorithm can be considered as a modified <span class="math inline">\(K\)</span>-fold cross validation, especially for estimating the shrinkage parameter of VAR models; see <span class="citation">Lee, Choi, and Kim (2016)</span> for a detailed explanation.</p>
+<p>In addition, the semiparametric Bayesian shrinkage method adopts the idea of shrinking both the correlations and variances from the NS method. As a result, there are two shrinkage parameters <span class="math inline">\(\lambda\)</span> and <span class="math inline">\(\lambda_v\)</span>, where <span class="math inline">\(0 \leq \lambda \leq 1\)</span> is used for the shrinkage estimation of the VAR coefficient matrix <span class="math inline">\(\Psi\)</span> and noise covariance matrix <span class="math inline">\(\mathbf{\Sigma}\)</span> while <span class="math inline">\(0 \leq \lambda_v \leq 1\)</span> is used for the shrinkage estimation of the variances of the variables <span class="math inline">\(y_{tj}, j = 1, \ldots, K\)</span>.</p>
+<p>In the package <strong>VARshrink</strong>, the function <code>VARshrink(method = &quot;sbayes&quot;, ...)</code> is for the semiparametric Bayesian shrinkage method. There are several input arguments to these functions as follows:</p>
+<ul>
+<li><code>dof</code>: If <code>dof = Inf</code>, we use a multivariate normal distribution for noise vectors. Otherwise, <code>dof</code> can be set as a finite number <span class="math inline">\(\nu\)</span> between <span class="math inline">\(0\)</span> and <span class="math inline">\(\infty\)</span> for the multivariate t-distribution with the degree of freedom <span class="math inline">\(\nu\)</span>. If <code>dof = NULL</code>, then <span class="math inline">\(\nu\)</span> is automatically selected by the <span class="math inline">\(K\)</span>-fold cross validation, with <span class="math inline">\(K\)</span> <code>= num_fold</code>. <code>dof = Inf</code> by default.</li>
+<li><code>lambda, lambda_var</code>: <code>lambda = NULL</code> and <code>lambda_var = NULL</code> implies that the shrinkage parameters <span class="math inline">\(\lambda\)</span> and <span class="math inline">\(\lambda_v\)</span> are estimated automatically with <span class="math inline">\(0\leq \lambda, \lambda_v \leq 1\)</span>.</li>
+<li><code>prior_type</code>: Either <code>prior_type = &quot;NCJ&quot;</code> or <code>prior_type = &quot;CJ&quot;</code>, which implies non-conjugate prior or conjugate prior. The default value is “NCJ”.</li>
+<li><code>num_folds</code>: The number of folds for the parameterized cross validation method for determining <span class="math inline">\(\lambda\)</span> value. <code>num_folds = 5</code> by default. It works only when <code>lambda = NULL</code> or <code>dof = NULL</code>.</li>
+<li><code>m0</code>: The value of the hyperparameter <span class="math inline">\(m_0\)</span> of the inverse Wishart prior of <span class="math inline">\(\mathbf{\Sigma}\)</span>. <code>m0 =</code><span class="math inline">\(K\)</span> by default. On the other hand, the other hyperparameter <span class="math inline">\(\mathbf{L}_0\)</span> of the inverse Wishart prior is set by <span class="math inline">\(\mathbf{L}_0 = (m_0 + K + 1) \mathbf{I}_K\)</span>.</li>
+</ul>
+<p>For example, we can run the semiparametric shrinkage method as follows.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1"></a>resu_estim<span class="op">$</span><span class="st">`</span><span class="dt">Semi Bayes (fixed dof)</span><span class="st">`</span> &lt;-</span>
+<span id="cb10-2"><a href="#cb10-2"></a><span class="st">  </span><span class="kw">VARshrink</span>(Y, <span class="dt">p =</span> <span class="dv">1</span>, <span class="dt">type =</span> <span class="st">&quot;const&quot;</span>, <span class="dt">method =</span> <span class="st">&quot;sbayes&quot;</span>, <span class="dt">dof =</span> <span class="dv">6</span>,</span>
+<span id="cb10-3"><a href="#cb10-3"></a>            <span class="dt">lambda =</span> <span class="ot">NULL</span>, <span class="dt">lambda_var =</span> <span class="ot">NULL</span>, <span class="dt">prior_type =</span> <span class="st">&quot;NCJ&quot;</span>,</span>
+<span id="cb10-4"><a href="#cb10-4"></a>            <span class="dt">num_folds =</span> <span class="dv">5</span>, <span class="dt">m0 =</span> <span class="kw">ncol</span>(Y))</span>
+<span id="cb10-5"><a href="#cb10-5"></a>resu_estim<span class="op">$</span><span class="st">`</span><span class="dt">Semi Bayes (fixed dof)</span><span class="st">`</span></span>
+<span id="cb10-6"><a href="#cb10-6"></a><span class="co">#&gt; </span></span>
+<span id="cb10-7"><a href="#cb10-7"></a><span class="co">#&gt; VAR Shrinkage Estimation Results:</span></span>
+<span id="cb10-8"><a href="#cb10-8"></a><span class="co">#&gt; ================================= </span></span>
+<span id="cb10-9"><a href="#cb10-9"></a><span class="co">#&gt; </span></span>
+<span id="cb10-10"><a href="#cb10-10"></a><span class="co">#&gt; Estimated coefficients for equation y1: </span></span>
+<span id="cb10-11"><a href="#cb10-11"></a><span class="co">#&gt; ======================================= </span></span>
+<span id="cb10-12"><a href="#cb10-12"></a><span class="co">#&gt; Call:</span></span>
+<span id="cb10-13"><a href="#cb10-13"></a><span class="co">#&gt; y1 = y1.l1 + y2.l1 + const </span></span>
+<span id="cb10-14"><a href="#cb10-14"></a><span class="co">#&gt; </span></span>
+<span id="cb10-15"><a href="#cb10-15"></a><span class="co">#&gt;      y1.l1      y2.l1      const </span></span>
+<span id="cb10-16"><a href="#cb10-16"></a><span class="co">#&gt; 0.52361471 0.05712005 0.07157308 </span></span>
+<span id="cb10-17"><a href="#cb10-17"></a><span class="co">#&gt; </span></span>
+<span id="cb10-18"><a href="#cb10-18"></a><span class="co">#&gt; </span></span>
+<span id="cb10-19"><a href="#cb10-19"></a><span class="co">#&gt; Estimated coefficients for equation y2: </span></span>
+<span id="cb10-20"><a href="#cb10-20"></a><span class="co">#&gt; ======================================= </span></span>
+<span id="cb10-21"><a href="#cb10-21"></a><span class="co">#&gt; Call:</span></span>
+<span id="cb10-22"><a href="#cb10-22"></a><span class="co">#&gt; y2 = y1.l1 + y2.l1 + const </span></span>
+<span id="cb10-23"><a href="#cb10-23"></a><span class="co">#&gt; </span></span>
+<span id="cb10-24"><a href="#cb10-24"></a><span class="co">#&gt;      y1.l1      y2.l1      const </span></span>
+<span id="cb10-25"><a href="#cb10-25"></a><span class="co">#&gt; 0.09327854 0.36697792 0.97005425 </span></span>
+<span id="cb10-26"><a href="#cb10-26"></a><span class="co">#&gt; </span></span>
+<span id="cb10-27"><a href="#cb10-27"></a><span class="co">#&gt; </span></span>
+<span id="cb10-28"><a href="#cb10-28"></a><span class="co">#&gt; Sigma for noise:</span></span>
+<span id="cb10-29"><a href="#cb10-29"></a><span class="co">#&gt;               y1            y2</span></span>
+<span id="cb10-30"><a href="#cb10-30"></a><span class="co">#&gt; y1  0.0065088952 -0.0003156327</span></span>
+<span id="cb10-31"><a href="#cb10-31"></a><span class="co">#&gt; y2 -0.0003156327  0.0106188219</span></span>
+<span id="cb10-32"><a href="#cb10-32"></a><span class="co">#&gt; dof for noise: 6 (estimated: FALSE) </span></span>
+<span id="cb10-33"><a href="#cb10-33"></a><span class="co">#&gt; lambda: 0.00318699518988467 (estimated: TRUE) </span></span>
+<span id="cb10-34"><a href="#cb10-34"></a><span class="co">#&gt; lambda_var: 0.940206098485031 (estimated: TRUE)</span></span>
+<span id="cb10-35"><a href="#cb10-35"></a><span class="kw">summary</span>(resu_estim<span class="op">$</span><span class="st">`</span><span class="dt">Semi Bayes (fixed dof)</span><span class="st">`</span>)</span>
+<span id="cb10-36"><a href="#cb10-36"></a><span class="co">#&gt; </span></span>
+<span id="cb10-37"><a href="#cb10-37"></a><span class="co">#&gt; VAR Shrinkage Estimation Results:</span></span>
+<span id="cb10-38"><a href="#cb10-38"></a><span class="co">#&gt; =================================== </span></span>
+<span id="cb10-39"><a href="#cb10-39"></a><span class="co">#&gt; Endogenous variables: y1, y2 </span></span>
+<span id="cb10-40"><a href="#cb10-40"></a><span class="co">#&gt; Deterministic variables: const </span></span>
+<span id="cb10-41"><a href="#cb10-41"></a><span class="co">#&gt; Sample size: 99 </span></span>
+<span id="cb10-42"><a href="#cb10-42"></a><span class="co">#&gt; Log Likelihood: 127.887 </span></span>
+<span id="cb10-43"><a href="#cb10-43"></a><span class="co">#&gt; Roots of the characteristic polynomial:</span></span>
+<span id="cb10-44"><a href="#cb10-44"></a><span class="co">#&gt; 0.5524 0.3382</span></span>
+<span id="cb10-45"><a href="#cb10-45"></a><span class="co">#&gt; Call:</span></span>
+<span id="cb10-46"><a href="#cb10-46"></a><span class="co">#&gt; VARshrink(y = Y, p = 1, type = &quot;const&quot;, method = &quot;sbayes&quot;, lambda = NULL, </span></span>
+<span id="cb10-47"><a href="#cb10-47"></a><span class="co">#&gt;     lambda_var = NULL, dof = 6, prior_type = &quot;NCJ&quot;, num_folds = 5, </span></span>
+<span id="cb10-48"><a href="#cb10-48"></a><span class="co">#&gt;     m0 = ncol(Y))</span></span>
+<span id="cb10-49"><a href="#cb10-49"></a><span class="co">#&gt; </span></span>
+<span id="cb10-50"><a href="#cb10-50"></a><span class="co">#&gt; </span></span>
+<span id="cb10-51"><a href="#cb10-51"></a><span class="co">#&gt; Estimation results for equation y1: </span></span>
+<span id="cb10-52"><a href="#cb10-52"></a><span class="co">#&gt; =================================== </span></span>
+<span id="cb10-53"><a href="#cb10-53"></a><span class="co">#&gt; y1 = y1.l1 + y2.l1 + const </span></span>
+<span id="cb10-54"><a href="#cb10-54"></a><span class="co">#&gt; </span></span>
+<span id="cb10-55"><a href="#cb10-55"></a><span class="co">#&gt;       Estimate Std. Error t value Pr(&gt;|t|)    </span></span>
+<span id="cb10-56"><a href="#cb10-56"></a><span class="co">#&gt; y1.l1  0.52361    0.08491   6.167 1.65e-08 ***</span></span>
+<span id="cb10-57"><a href="#cb10-57"></a><span class="co">#&gt; y2.l1  0.05712    0.09226   0.619    0.537    </span></span>
+<span id="cb10-58"><a href="#cb10-58"></a><span class="co">#&gt; const  0.07157    0.13375   0.535    0.594    </span></span>
+<span id="cb10-59"><a href="#cb10-59"></a><span class="co">#&gt; ---</span></span>
+<span id="cb10-60"><a href="#cb10-60"></a><span class="co">#&gt; Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</span></span>
+<span id="cb10-61"><a href="#cb10-61"></a><span class="co">#&gt; </span></span>
+<span id="cb10-62"><a href="#cb10-62"></a><span class="co">#&gt; </span></span>
+<span id="cb10-63"><a href="#cb10-63"></a><span class="co">#&gt; Residual standard error: 0.09877 on 96.0093 degrees of freedom</span></span>
+<span id="cb10-64"><a href="#cb10-64"></a><span class="co">#&gt; Multiple R-Squared: 0.2713,  Adjusted R-squared: 0.2561 </span></span>
+<span id="cb10-65"><a href="#cb10-65"></a><span class="co">#&gt; F-statistic: 17.95 on 1.990699 and 96.0093 DF,  p-value: 2.492e-07 </span></span>
+<span id="cb10-66"><a href="#cb10-66"></a><span class="co">#&gt; </span></span>
+<span id="cb10-67"><a href="#cb10-67"></a><span class="co">#&gt; </span></span>
+<span id="cb10-68"><a href="#cb10-68"></a><span class="co">#&gt; Estimation results for equation y2: </span></span>
+<span id="cb10-69"><a href="#cb10-69"></a><span class="co">#&gt; =================================== </span></span>
+<span id="cb10-70"><a href="#cb10-70"></a><span class="co">#&gt; y2 = y1.l1 + y2.l1 + const </span></span>
+<span id="cb10-71"><a href="#cb10-71"></a><span class="co">#&gt; </span></span>
+<span id="cb10-72"><a href="#cb10-72"></a><span class="co">#&gt;       Estimate Std. Error t value Pr(&gt;|t|)    </span></span>
+<span id="cb10-73"><a href="#cb10-73"></a><span class="co">#&gt; y1.l1  0.09328    0.13092   0.713   0.4779    </span></span>
+<span id="cb10-74"><a href="#cb10-74"></a><span class="co">#&gt; y2.l1  0.36698    0.14224   2.580   0.0114 *  </span></span>
+<span id="cb10-75"><a href="#cb10-75"></a><span class="co">#&gt; const  0.97005    0.20622   4.704 8.55e-06 ***</span></span>
+<span id="cb10-76"><a href="#cb10-76"></a><span class="co">#&gt; ---</span></span>
+<span id="cb10-77"><a href="#cb10-77"></a><span class="co">#&gt; Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</span></span>
+<span id="cb10-78"><a href="#cb10-78"></a><span class="co">#&gt; </span></span>
+<span id="cb10-79"><a href="#cb10-79"></a><span class="co">#&gt; </span></span>
+<span id="cb10-80"><a href="#cb10-80"></a><span class="co">#&gt; Residual standard error: 0.1523 on 96.0093 degrees of freedom</span></span>
+<span id="cb10-81"><a href="#cb10-81"></a><span class="co">#&gt; Multiple R-Squared: 0.06678, Adjusted R-squared: 0.04743 </span></span>
+<span id="cb10-82"><a href="#cb10-82"></a><span class="co">#&gt; F-statistic: 3.451 on 1.990699 and 96.0093 DF,  p-value: 0.03589 </span></span>
+<span id="cb10-83"><a href="#cb10-83"></a><span class="co">#&gt; </span></span>
+<span id="cb10-84"><a href="#cb10-84"></a><span class="co">#&gt; </span></span>
+<span id="cb10-85"><a href="#cb10-85"></a><span class="co">#&gt; </span></span>
+<span id="cb10-86"><a href="#cb10-86"></a><span class="co">#&gt; Scale matrix, Sigma, of multivariate t distribution for noise:</span></span>
+<span id="cb10-87"><a href="#cb10-87"></a><span class="co">#&gt;            y1         y2</span></span>
+<span id="cb10-88"><a href="#cb10-88"></a><span class="co">#&gt; y1  0.0065089 -0.0003156</span></span>
+<span id="cb10-89"><a href="#cb10-89"></a><span class="co">#&gt; y2 -0.0003156  0.0106188</span></span>
+<span id="cb10-90"><a href="#cb10-90"></a><span class="co">#&gt; </span></span>
+<span id="cb10-91"><a href="#cb10-91"></a><span class="co">#&gt; Degrees of freedom of multivariate t distribution for noise:</span></span>
+<span id="cb10-92"><a href="#cb10-92"></a><span class="co">#&gt; [1] 6</span></span>
+<span id="cb10-93"><a href="#cb10-93"></a><span class="co">#&gt; </span></span>
+<span id="cb10-94"><a href="#cb10-94"></a><span class="co">#&gt; Correlation matrix of Sigma:</span></span>
+<span id="cb10-95"><a href="#cb10-95"></a><span class="co">#&gt;          y1       y2</span></span>
+<span id="cb10-96"><a href="#cb10-96"></a><span class="co">#&gt; y1  1.00000 -0.03797</span></span>
+<span id="cb10-97"><a href="#cb10-97"></a><span class="co">#&gt; y2 -0.03797  1.00000</span></span></code></pre></div>
+<p>We can also let the software package to choose the degree of freedom parameter <span class="math inline">\(\nu\)</span> automatically by setting <code>dof = NULL</code>. In this case, the package uses simply a <span class="math inline">\(K\)</span>-fold cross validation to find an optimal value of <span class="math inline">\(\nu\)</span>.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1"></a>resu_estim<span class="op">$</span><span class="st">`</span><span class="dt">Semi Bayes (estim dof)</span><span class="st">`</span> &lt;-</span>
+<span id="cb11-2"><a href="#cb11-2"></a><span class="st">  </span><span class="kw">VARshrink</span>(Y, <span class="dt">p =</span> <span class="dv">1</span>, <span class="dt">type =</span> <span class="st">&quot;const&quot;</span>, <span class="dt">method =</span> <span class="st">&quot;sbayes&quot;</span>, <span class="dt">dof =</span> <span class="ot">NULL</span>,</span>
+<span id="cb11-3"><a href="#cb11-3"></a>            <span class="dt">lambda =</span> <span class="ot">NULL</span>, <span class="dt">lambda_var =</span> <span class="ot">NULL</span>, <span class="dt">prior_type =</span> <span class="st">&quot;NCJ&quot;</span>,</span>
+<span id="cb11-4"><a href="#cb11-4"></a>            <span class="dt">num_folds =</span> <span class="dv">5</span>, <span class="dt">m0 =</span> <span class="kw">ncol</span>(Y))</span>
+<span id="cb11-5"><a href="#cb11-5"></a>resu_estim<span class="op">$</span><span class="st">`</span><span class="dt">Semi Bayes (estim dof)</span><span class="st">`</span></span>
+<span id="cb11-6"><a href="#cb11-6"></a><span class="co">#&gt; </span></span>
+<span id="cb11-7"><a href="#cb11-7"></a><span class="co">#&gt; VAR Shrinkage Estimation Results:</span></span>
+<span id="cb11-8"><a href="#cb11-8"></a><span class="co">#&gt; ================================= </span></span>
+<span id="cb11-9"><a href="#cb11-9"></a><span class="co">#&gt; </span></span>
+<span id="cb11-10"><a href="#cb11-10"></a><span class="co">#&gt; Estimated coefficients for equation y1: </span></span>
+<span id="cb11-11"><a href="#cb11-11"></a><span class="co">#&gt; ======================================= </span></span>
+<span id="cb11-12"><a href="#cb11-12"></a><span class="co">#&gt; Call:</span></span>
+<span id="cb11-13"><a href="#cb11-13"></a><span class="co">#&gt; y1 = y1.l1 + y2.l1 + const </span></span>
+<span id="cb11-14"><a href="#cb11-14"></a><span class="co">#&gt; </span></span>
+<span id="cb11-15"><a href="#cb11-15"></a><span class="co">#&gt;       y1.l1       y2.l1       const </span></span>
+<span id="cb11-16"><a href="#cb11-16"></a><span class="co">#&gt;  0.50699465 -0.05884566  0.20997630 </span></span>
+<span id="cb11-17"><a href="#cb11-17"></a><span class="co">#&gt; </span></span>
+<span id="cb11-18"><a href="#cb11-18"></a><span class="co">#&gt; </span></span>
+<span id="cb11-19"><a href="#cb11-19"></a><span class="co">#&gt; Estimated coefficients for equation y2: </span></span>
+<span id="cb11-20"><a href="#cb11-20"></a><span class="co">#&gt; ======================================= </span></span>
+<span id="cb11-21"><a href="#cb11-21"></a><span class="co">#&gt; Call:</span></span>
+<span id="cb11-22"><a href="#cb11-22"></a><span class="co">#&gt; y2 = y1.l1 + y2.l1 + const </span></span>
+<span id="cb11-23"><a href="#cb11-23"></a><span class="co">#&gt; </span></span>
+<span id="cb11-24"><a href="#cb11-24"></a><span class="co">#&gt;      y1.l1      y2.l1      const </span></span>
+<span id="cb11-25"><a href="#cb11-25"></a><span class="co">#&gt; 0.07138759 0.37448706 0.97355673 </span></span>
+<span id="cb11-26"><a href="#cb11-26"></a><span class="co">#&gt; </span></span>
+<span id="cb11-27"><a href="#cb11-27"></a><span class="co">#&gt; </span></span>
+<span id="cb11-28"><a href="#cb11-28"></a><span class="co">#&gt; Sigma for noise:</span></span>
+<span id="cb11-29"><a href="#cb11-29"></a><span class="co">#&gt;               y1            y2</span></span>
+<span id="cb11-30"><a href="#cb11-30"></a><span class="co">#&gt; y1  5.001873e-03 -9.978788e-06</span></span>
+<span id="cb11-31"><a href="#cb11-31"></a><span class="co">#&gt; y2 -9.978788e-06  6.991886e-03</span></span>
+<span id="cb11-32"><a href="#cb11-32"></a><span class="co">#&gt; dof for noise: 0.5 (estimated: TRUE) </span></span>
+<span id="cb11-33"><a href="#cb11-33"></a><span class="co">#&gt; lambda: 0.00145763877257461 (estimated: TRUE) </span></span>
+<span id="cb11-34"><a href="#cb11-34"></a><span class="co">#&gt; lambda_var: 0.940206098485031 (estimated: TRUE)</span></span></code></pre></div>
+</div>
+<div id="k-fold-cross-validation-for-semiparametric-shrinkage" class="section level2">
+<h2><span class="header-section-number">3.5</span> K-fold Cross Validation for Semiparametric Shrinkage</h2>
+<p>The <strong>VARshrink</strong> includes an implementation of the K-fold cross validation (CV) method for selecting shrinkage parameters. In the current version of the package, the K-fold CV method can select the <span class="math inline">\(\lambda\)</span> and <span class="math inline">\(\lambda_v\)</span> values for the semiparametric Bayesian shrinkage estimator described in Section <a href="#sec:sbayes">3.4</a>. Note the the semiparametric shrinkage method in the previous section selects a <span class="math inline">\(\lambda\)</span> value by using the PCV method and selects a <span class="math inline">\(\lambda_v\)</span> value by a Stein-type nonparametric shrinkage method.</p>
+<p>The K-fold CV method can be run as follows. The arguments to <code>VARshrink()</code> are same to those for the semiparametric Bayesian shrinkage method except for the argument <code>method = &quot;kcv&quot;</code>.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1"></a>resu_estim<span class="op">$</span><span class="st">`</span><span class="dt">K-fold CV (fixed dof)</span><span class="st">`</span> &lt;-</span>
+<span id="cb12-2"><a href="#cb12-2"></a><span class="st">  </span><span class="kw">VARshrink</span>(Y, <span class="dt">p =</span> <span class="dv">1</span>, <span class="dt">type =</span> <span class="st">&quot;const&quot;</span>, <span class="dt">method =</span> <span class="st">&quot;kcv&quot;</span>, <span class="dt">dof =</span> <span class="dv">6</span>,</span>
+<span id="cb12-3"><a href="#cb12-3"></a>            <span class="dt">lambda =</span> <span class="ot">NULL</span>, <span class="dt">lambda_var =</span> <span class="ot">NULL</span>, <span class="dt">prior_type =</span> <span class="st">&quot;NCJ&quot;</span>,</span>
+<span id="cb12-4"><a href="#cb12-4"></a>            <span class="dt">num_folds =</span> <span class="dv">5</span>, <span class="dt">m0 =</span> <span class="kw">ncol</span>(Y))</span>
+<span id="cb12-5"><a href="#cb12-5"></a>resu_estim<span class="op">$</span><span class="st">`</span><span class="dt">K-fold CV (fixed dof)</span><span class="st">`</span></span>
+<span id="cb12-6"><a href="#cb12-6"></a><span class="co">#&gt; </span></span>
+<span id="cb12-7"><a href="#cb12-7"></a><span class="co">#&gt; VAR Shrinkage Estimation Results:</span></span>
+<span id="cb12-8"><a href="#cb12-8"></a><span class="co">#&gt; ================================= </span></span>
+<span id="cb12-9"><a href="#cb12-9"></a><span class="co">#&gt; </span></span>
+<span id="cb12-10"><a href="#cb12-10"></a><span class="co">#&gt; Estimated coefficients for equation y1: </span></span>
+<span id="cb12-11"><a href="#cb12-11"></a><span class="co">#&gt; ======================================= </span></span>
+<span id="cb12-12"><a href="#cb12-12"></a><span class="co">#&gt; Call:</span></span>
+<span id="cb12-13"><a href="#cb12-13"></a><span class="co">#&gt; y1 = y1.l1 + y2.l1 + const </span></span>
+<span id="cb12-14"><a href="#cb12-14"></a><span class="co">#&gt; </span></span>
+<span id="cb12-15"><a href="#cb12-15"></a><span class="co">#&gt;      y1.l1      y2.l1      const </span></span>
+<span id="cb12-16"><a href="#cb12-16"></a><span class="co">#&gt; 0.62604182 0.05632303 0.07184976 </span></span>
+<span id="cb12-17"><a href="#cb12-17"></a><span class="co">#&gt; </span></span>
+<span id="cb12-18"><a href="#cb12-18"></a><span class="co">#&gt; </span></span>
+<span id="cb12-19"><a href="#cb12-19"></a><span class="co">#&gt; Estimated coefficients for equation y2: </span></span>
+<span id="cb12-20"><a href="#cb12-20"></a><span class="co">#&gt; ======================================= </span></span>
+<span id="cb12-21"><a href="#cb12-21"></a><span class="co">#&gt; Call:</span></span>
+<span id="cb12-22"><a href="#cb12-22"></a><span class="co">#&gt; y2 = y1.l1 + y2.l1 + const </span></span>
+<span id="cb12-23"><a href="#cb12-23"></a><span class="co">#&gt; </span></span>
+<span id="cb12-24"><a href="#cb12-24"></a><span class="co">#&gt;      y1.l1      y2.l1      const </span></span>
+<span id="cb12-25"><a href="#cb12-25"></a><span class="co">#&gt; 0.09004368 0.29111218 0.96959392 </span></span>
+<span id="cb12-26"><a href="#cb12-26"></a><span class="co">#&gt; </span></span>
+<span id="cb12-27"><a href="#cb12-27"></a><span class="co">#&gt; </span></span>
+<span id="cb12-28"><a href="#cb12-28"></a><span class="co">#&gt; Sigma for noise:</span></span>
+<span id="cb12-29"><a href="#cb12-29"></a><span class="co">#&gt;               y1            y2</span></span>
+<span id="cb12-30"><a href="#cb12-30"></a><span class="co">#&gt; y1  0.0075080166 -0.0003445399</span></span>
+<span id="cb12-31"><a href="#cb12-31"></a><span class="co">#&gt; y2 -0.0003445399  0.0081370205</span></span>
+<span id="cb12-32"><a href="#cb12-32"></a><span class="co">#&gt; dof for noise: 6 (estimated: FALSE) </span></span>
+<span id="cb12-33"><a href="#cb12-33"></a><span class="co">#&gt; lambda: 0.001 (estimated: TRUE) </span></span>
+<span id="cb12-34"><a href="#cb12-34"></a><span class="co">#&gt; lambda_var: 0.001 (estimated: TRUE)</span></span></code></pre></div>
+<p>Degree of freedom of multivariate t-distribution for noise can be selected automatically by setting the argument <code>dof = Inf</code> as follows.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1"></a>resu_estim<span class="op">$</span><span class="st">`</span><span class="dt">K-fold CV (estim dof)</span><span class="st">`</span> &lt;-</span>
+<span id="cb13-2"><a href="#cb13-2"></a><span class="st">  </span><span class="kw">VARshrink</span>(Y, <span class="dt">p =</span> <span class="dv">1</span>, <span class="dt">type =</span> <span class="st">&quot;const&quot;</span>, <span class="dt">method =</span> <span class="st">&quot;kcv&quot;</span>, <span class="dt">dof =</span> <span class="ot">NULL</span>,</span>
+<span id="cb13-3"><a href="#cb13-3"></a>            <span class="dt">lambda =</span> <span class="ot">NULL</span>, <span class="dt">lambda_var =</span> <span class="ot">NULL</span>, <span class="dt">prior_type =</span> <span class="st">&quot;NCJ&quot;</span>,</span>
+<span id="cb13-4"><a href="#cb13-4"></a>            <span class="dt">num_folds =</span> <span class="dv">5</span>, <span class="dt">m0 =</span> <span class="kw">ncol</span>(Y))</span></code></pre></div>
+<p>After all, the function <code>calcSSE_Acoef()</code> computes the sum of squared errors (SSEs) between two VAR model parameters, <span class="math inline">\(\{\mathbf{A}_k^{(1)}\}\)</span> and <span class="math inline">\(\{\mathbf{A}_k^{(2)}\}\)</span>, as <span class="math inline">\(SSE = \sum_{k=1}^p \sum_{i,j} (\mathbf{A}^{(1)}_{kij} - \mathbf{A}^{(2)}_{kij})^2\)</span>. For example, Table 2 shows the SSEs of the estimated VAR coefficients.</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1"></a>resu_sse &lt;-<span class="st"> </span><span class="kw">data.frame</span>(<span class="dt">SSE =</span> <span class="kw">sapply</span>(resu_estim,</span>
+<span id="cb14-2"><a href="#cb14-2"></a>  <span class="cf">function</span>(x) <span class="kw">calcSSE_Acoef</span>(<span class="kw">Acoef_sh</span>(x), myCoef<span class="op">$</span>A)))</span></code></pre></div>
+<table>
+<caption>
+Table 2. Sum of squared errors of VAR coefficients estimated by the shrinkage methods.
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+</th>
+<th style="text-align:right;">
+SSE
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Ridge regression
+</td>
+<td style="text-align:right;">
+0.063
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Nonparametric shrinkage
+</td>
+<td style="text-align:right;">
+0.080
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Full Bayes (fixed dof)
+</td>
+<td style="text-align:right;">
+0.068
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Full Bayes (estim dof)
+</td>
+<td style="text-align:right;">
+0.067
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Semi Bayes (fixed dof)
+</td>
+<td style="text-align:right;">
+0.030
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Semi Bayes (estim dof)
+</td>
+<td style="text-align:right;">
+0.024
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+K-fold CV (fixed dof)
+</td>
+<td style="text-align:right;">
+0.071
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+K-fold CV (estim dof)
+</td>
+<td style="text-align:right;">
+0.062
+</td>
+</tr>
+</tbody>
+</table>
+<hr />
+</div>
+</div>
+<div id="sec:numer" class="section level1">
+<h1><span class="header-section-number">4</span> Numerical Experiments</h1>
+<p>In this section, we apply the shrinkage estimation methods in the package <strong>VARshrink</strong> to a benchmark data set. Using the benchmark data set, we demonstrate the use of information criteria such as Akaike Information Criterion (AIC) and Bayesian Information Criterion (BIC) for comparison of VAR models. In this case, the effective number of parameters for an shrinkage estimate has to be re-calculated based on the shrinkage intensity parameter value.</p>
+<div id="benchmark-data" class="section level2">
+<h2><span class="header-section-number">4.1</span> Benchmark Data</h2>
+<p>The Canada data set is a benchmark macroeconomic data included in the package <strong>vars</strong>. It contains four time series variables representing employment(<code>e</code>), labor productivity(<code>prod</code>), real wage(<code>rw</code>), and unemployment rate(<code>U</code>), with <span class="math inline">\(84\)</span> observations. We took difference on the data to remove trend, yielding <span class="math inline">\(T = 83\)</span>. Figure 1 shows the differencing result.</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1"></a><span class="kw">data</span>(Canada, <span class="dt">package =</span> <span class="st">&quot;vars&quot;</span>)</span>
+<span id="cb15-2"><a href="#cb15-2"></a>Y =<span class="st"> </span><span class="kw">diff</span>(Canada)</span>
+<span id="cb15-3"><a href="#cb15-3"></a><span class="kw">plot</span>(Y, <span class="dt">cex.lab =</span> <span class="fl">1.3</span>)</span></code></pre></div>
+<div class="figure">
+<img src="data:image/png;base64,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" alt="Figure 1. The benchmark data set obtained by differencing the Canada data." width="70%" />
+<p class="caption">
+Figure 1. The benchmark data set obtained by differencing the Canada data.
+</p>
+</div>
+<p>The shrinkage methods are run with the option <code>const = &quot;const&quot;</code> since the mean of the data has not been corrected. We set the lag order <span class="math inline">\(p\)</span> at <code>p = 1, 2, 3</code> to compare several VAR models. For the semiparametric Bayesian method (<code>method = &quot;sbayes&quot;</code>), the degree of freedom <span class="math inline">\(\nu\)</span> was automatically selected. In addition, we ran the K-fold CV method (<code>method = &quot;kcv&quot;</code>) for choosing <span class="math inline">\(\lambda\)</span> and <span class="math inline">\(\lambda_v\)</span> values of the semiparametric Bayesian shrinkage estimator.</p>
+<pre><code>set.seed(1000)
+resu_model &lt;- array(NA, dim = c(5, 2, 3),
+  dimnames = list(c(&quot;Ridge regression&quot;, &quot;Nonparametric shrinkage&quot;,
+                    &quot;Full Bayes&quot;, &quot;Semi Bayes&quot;, &quot;K-fold CV&quot;),
+                  c(&quot;AIC&quot;, &quot;BIC&quot;), c(&quot;p=1&quot;, &quot;p=2&quot;, &quot;p=3&quot;)))
+for (p in 1:3) {
+  EstimRidge &lt;- VARshrink(Y, p = p, type = &quot;const&quot;, method = &quot;ridge&quot;)
+  resu_model[&quot;Ridge regression&quot;, , p] &lt;- c(AIC(EstimRidge), BIC(EstimRidge))
+
+  EstimNS &lt;- VARshrink(Y, p = p, type = &quot;const&quot;, method = &quot;ns&quot;)
+  resu_model[&quot;Nonparametric shrinkage&quot;, , p] &lt;-
+    c(AIC(EstimNS), BIC(EstimNS))
+
+  EstimFB &lt;- VARshrink(Y, p = p, type = &quot;const&quot;, method = &quot;fbayes&quot;, dof = NULL)
+  resu_model[&quot;Full Bayes&quot;, , p] &lt;- c(AIC(EstimFB), BIC(EstimFB))
+
+  EstimSB &lt;- VARshrink(Y, p = p, type = &quot;const&quot;, method = &quot;sbayes&quot;,
+                       dof = NULL, prior_type = &quot;NCJ&quot;)
+  resu_model[&quot;Semi Bayes&quot;, , p] &lt;- c(AIC(EstimSB), BIC(EstimSB))
+
+  EstimKCV &lt;- VARshrink(Y, p = p, type = &quot;const&quot;, method = &quot;kcv&quot;,
+                          dof = NULL, prior_type = &quot;NCJ&quot;)
+  resu_model[&quot;K-fold CV&quot;, , p] &lt;- c(AIC(EstimKCV), BIC(EstimKCV))
+}</code></pre>
+<p>We can compare several models by computing their AIC and BIC. The following results in Table 3 indicate that the NS method produced better VAR coefficients than those of the other methods, and that the AIC took the minimum at <span class="math inline">\(p=3\)</span> while the BIC took the minimum at <span class="math inline">\(p=2\)</span>.</p>
+<table>
+<caption>
+Table 3. Information criteria (AIC, BIC) for model comparison.
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+</th>
+<th style="text-align:right;">
+AIC.p=1
+</th>
+<th style="text-align:right;">
+BIC.p=1
+</th>
+<th style="text-align:right;">
+AIC.p=2
+</th>
+<th style="text-align:right;">
+BIC.p=2
+</th>
+<th style="text-align:right;">
+AIC.p=3
+</th>
+<th style="text-align:right;">
+BIC.p=3
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Ridge regression
+</td>
+<td style="text-align:right;">
+465.8
+</td>
+<td style="text-align:right;">
+504.6
+</td>
+<td style="text-align:right;">
+442.9
+</td>
+<td style="text-align:right;">
+509.3
+</td>
+<td style="text-align:right;">
+445.3
+</td>
+<td style="text-align:right;">
+525.9
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Nonparametric shrinkage
+</td>
+<td style="text-align:right;">
+462.5
+</td>
+<td style="text-align:right;">
+496.6
+</td>
+<td style="text-align:right;">
+434.6
+</td>
+<td style="text-align:right;">
+489.0
+</td>
+<td style="text-align:right;">
+430.5
+</td>
+<td style="text-align:right;">
+502.9
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Full Bayes
+</td>
+<td style="text-align:right;">
+458.3
+</td>
+<td style="text-align:right;">
+500.4
+</td>
+<td style="text-align:right;">
+447.1
+</td>
+<td style="text-align:right;">
+514.7
+</td>
+<td style="text-align:right;">
+450.6
+</td>
+<td style="text-align:right;">
+532.2
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Semi Bayes
+</td>
+<td style="text-align:right;">
+502.6
+</td>
+<td style="text-align:right;">
+549.6
+</td>
+<td style="text-align:right;">
+483.8
+</td>
+<td style="text-align:right;">
+567.3
+</td>
+<td style="text-align:right;">
+496.2
+</td>
+<td style="text-align:right;">
+607.8
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+K-fold CV
+</td>
+<td style="text-align:right;">
+526.9
+</td>
+<td style="text-align:right;">
+574.3
+</td>
+<td style="text-align:right;">
+477.2
+</td>
+<td style="text-align:right;">
+526.2
+</td>
+<td style="text-align:right;">
+469.6
+</td>
+<td style="text-align:right;">
+540.0
+</td>
+</tr>
+</tbody>
+</table>
+<p>The estimated parameters by the NS method with <span class="math inline">\(p=2\)</span> can be analyzed further by using the methods and functions in Table 1. For example, we can perform time series forecasting as in Figure 2.</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1"></a><span class="kw">plot</span>(<span class="kw">predict</span>(<span class="kw">VARshrink</span>(Y, <span class="dt">p =</span> <span class="dv">2</span>, <span class="dt">type =</span> <span class="st">&quot;const&quot;</span>, <span class="dt">method =</span> <span class="st">&quot;ns&quot;</span>)), <span class="dt">names =</span> <span class="st">&quot;U&quot;</span>)</span>
+<span id="cb17-2"><a href="#cb17-2"></a><span class="co">#&gt; Warning in VARshrink(Y, p = 2, type = &quot;const&quot;, method = &quot;ns&quot;): &#39;ns&#39; method</span></span>
+<span id="cb17-3"><a href="#cb17-3"></a><span class="co">#&gt; does not allow type=&#39;const&#39;.. changed to &#39;none&#39;.</span></span></code></pre></div>
+<div class="figure">
+<img src="data:image/png;base64,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" alt />
+<p class="caption">Figure 2. A 10-step ahead Forecasting of time series by the VAR model estimated by the nonparametric shrinkage method. The differenced Canada data were modeled by a VAR(2) model selected at the minimum BIC.</p>
+</div>
+<hr />
+</div>
+</div>
+<div id="sec:concl" class="section level1">
+<h1><span class="header-section-number">5</span> Conclusions</h1>
+<p>We wrote an <span style="font-family:Helvetica">R</span> software package <strong>VARshrink</strong> for shrinkage estimation of VAR model parameters. The shrinkage methods included in this package are the multivariate ridge regression <span class="citation">(Hoerl and Kennard 1970; Golub, Heath, and Wahba 1979)</span>, a nonparametric shrinkage method <span class="citation">(Opgen-Rhein and Strimmer 2007b)</span>, a full Bayesian shrinkage method <span class="citation">(Ni and Sun 2005)</span>, and a semiparametric Bayesian shrinkage method <span class="citation">(Lee, Choi, and Kim 2016)</span>. An advantage of this package is the integration of the nonparametric, parametric, and semiparametric methods in one frame via a common interface function <code>VARshrink()</code>, which makes it easy and convenient to use various types of shrinkage estimation methods. Moreover, we note that the shrinkage estimation methods implemented in the current version have not been widely implemented in <span style="font-family:Helvetica">R</span> packages in the context of VAR models.</p>
+<p>We demonstrated the use of model selection criteria as AIC and BIC by using benchmark time series data. We note that computation of the log-likelihood of an estimated model must consider the actual distribution assumption of each method. We explained that the multivariate normal distribution is not the only choice for a distribution of noise, but another distributions such as the multivariate t-distribution can be chosen. Moreover, an effective number of parameters must be calculated for computing the AIC and BIC values. In this case, a large number of shrinkage parameter value leads to a small value of the effective number of parameters. In the package <strong>VARshrink</strong>, effective number of parameters is computed automatically based on the selected shrinkage parameter value.</p>
+<p>Shrinkage methods are quite crucial especially for high dimensional VAR models. Bayesian approaches have been developed widely for VAR models in the literature for various purposes. However, the computational time for carrying out MCMC processes may be intractably high for high dimensional VAR models. For this reason, it is important to use nonparametric and semiparametric shrinkage estimation methods together to produce computationally feasible estimates of model parameters. The <span style="font-family:Helvetica">R</span> package <strong>VARshrink</strong> is the first step to an integrative and general types of software packages for VAR models. Moreover, this package can be extended to include other shrinkage methods such as Bayesian shrinkage methods using several types of different prior distributions.</p>
+</div>
+<div id="references" class="section level1 unnumbered">
+<h1>References</h1>
+<div id="refs" class="references">
+<div id="ref-Banbura10">
+<p>Bańbura, M., D. Giannone, and L. Reichlin. 2010. “Large Bayesian Vector Auto Regressions.” <em>Journal of Applied Econometrics</em> 25 (1): 71–92. <a href="https://doi.org/10.1002/jae.1137">https://doi.org/10.1002/jae.1137</a>.</p>
+</div>
+<div id="ref-Beltra2013shrinkageEEG">
+<p>Beltrachini, L., N. von Ellenrieder, and C. H. Muravchik. 2013. “Shrinkage Approach for Spatiotemporal EEG Covariance Matrix Estimation.” <em>IEEE Transactions on Signal Processing</em> 61 (7): 1797–1808. <a href="https://doi.org/10.1109/TSP.2013.2238532">https://doi.org/10.1109/TSP.2013.2238532</a>.</p>
+</div>
+<div id="ref-Bohm2009shrinkage">
+<p>Böhm, H., and R. von Sachs. 2009. “Shrinkage Estimation in the Frequency Domain of Multivariate Time Series.” <em>Journal of Multivariate Analysis</em> 100 (5): 913–35. <a href="https://doi.org/10.1016/j.jmva.2008.09.009">https://doi.org/10.1016/j.jmva.2008.09.009</a>.</p>
+</div>
+<div id="ref-Doan84">
+<p>Doan, T., R. Litterman, and C. Sims. 1984. “Forecasting and Conditional Projection Using Realistic Prior Distributions.” <em>Econometric Reviews</em> 3 (1): 1–100. <a href="https://doi.org/10.1080/07474938408800053">https://doi.org/10.1080/07474938408800053</a>.</p>
+</div>
+<div id="ref-Fiecas2011aoas">
+<p>Fiecas, M., and H. Ombao. 2011. “The Generalized Shrinkage Estimator for the Analysis of Functional Connectivity of Brain Signals.” <em>The Annals of Applied Statistics</em> 5 (2A): 1102–25. <a href="https://doi.org/10.1214/10-AOAS396">https://doi.org/10.1214/10-AOAS396</a>.</p>
+</div>
+<div id="ref-Frideman18">
+<p>Friedman, J., T. Hastie, R. Tibshirani, N. Simon, B. Narasimhan, and J. Qian. 2018. “Glmnet: Lasso and Elastic-Net Regularized Generalized Linear Models.” R Package Version 2.0-16.</p>
+</div>
+<div id="ref-Golub79">
+<p>Golub, G. H., M. Heath, and G. Wahba. 1979. “Generalized Cross-Validation as a Method for Choosing a Good Ridge Parameter.” <em>Technometrics</em> 21 (2): 215–23. <a href="https://doi.org/10.1080/00401706.1979.10489751">https://doi.org/10.1080/00401706.1979.10489751</a>.</p>
+</div>
+<div id="ref-Hamilton94">
+<p>Hamilton, J. D. 1994. <em>Time Series Analysis</em>. Princeton: Princeton University Press.</p>
+</div>
+<div id="ref-Hoerl70">
+<p>Hoerl, A. E., and R. W. Kennard. 1970. “Ridge Regression: Biased Estimation for Nonorthogonal Problems.” <em>Technometrics</em> 12 (1): 55–67. <a href="https://doi.org/10.1080/00401706.1970.10488634">https://doi.org/10.1080/00401706.1970.10488634</a>.</p>
+</div>
+<div id="ref-Hyndman18">
+<p>Hyndman, R., G. Athanasopoulos, C. Bergmeir, G. Caceres, L. Chhay, M. O’Hara-Wild, F. Petropoulos, et al. 2018. “forecast: Forecasting Functions for Time Series and Linear Models.” R Package Version 8.4.</p>
+</div>
+<div id="ref-Koop10BayesianVAR">
+<p>Koop, G., and D. Korobilis. 2010. “Bayesian Multivariate Time Series Methods for Empirical Macroeconomics.” <em>Foundations and Trends in Econometrics</em> 3 (4): 267–358. <a href="https://doi.org/10.1561/0800000013">https://doi.org/10.1561/0800000013</a>.</p>
+</div>
+<div id="ref-Krueger2015bvarsv">
+<p>Krueger, F. 2015. “Bvarsv: Bayesian Analysis of a Vector Autoregressive Model with Stochastic Volatility and Time-Varying Parameters.” R Package Version 1.1.</p>
+</div>
+<div id="ref-LedoitWolf2004shrinkcov">
+<p>Ledoit, O., and M. Wolf. 2004. “A Well-Conditioned Estimator for Large-Dimensional Covariance Matrices.” <em>Journal of Multivariate Analysis</em> 88 (2): 365–411. <a href="https://doi.org/10.1016/S0047-259X(03)00096-4">https://doi.org/10.1016/S0047-259X(03)00096-4</a>.</p>
+</div>
+<div id="ref-LeeChoiKim2016">
+<p>Lee, N., H. Choi, and S.-H. Kim. 2016. “Bayes Shrinkage Estimation for High-Dimensional Var Models with Scale Mixture of Normal Distributions for Noise.” <em>Computationl Statistics &amp; Data Analysis</em> 101: 250–76. <a href="https://doi.org/10.1016/j.csda.2016.03.007">https://doi.org/10.1016/j.csda.2016.03.007</a>.</p>
+</div>
+<div id="ref-Litterman86">
+<p>Litterman, R. B. 1986. “Forecasting with Bayesian Vector Autoregressions: Five Years of Experience.” <em>Journal of Business &amp; Economic Statistics</em> 4 (1): 25–38. <a href="https://doi.org/10.2307/1391384">https://doi.org/10.2307/1391384</a>.</p>
+</div>
+<div id="ref-Moritz18">
+<p>Moritz, S., and E. Cule. 2018. “Ridge: Ridge Regression with Automatic Selection of the Penalty Parameter.” R Package Version 2.3.</p>
+</div>
+<div id="ref-Ni05">
+<p>Ni, S., and D. Sun. 2005. “Bayesian Estimates for Vector Autoregressive Models.” <em>Journal of Business &amp; Economic Statistics</em> 23 (1): 105–17. <a href="https://doi.org/10.1198/073500104000000622">https://doi.org/10.1198/073500104000000622</a>.</p>
+</div>
+<div id="ref-Rhein07a">
+<p>Opgen-Rhein, R., and K. Strimmer. 2007a. “Accurate Ranking of Differentially Expressed Genes by a Distribution-Free Shrinkage Approach.” <em>Statistical Applications in Genetics and Molecular Biology</em> 6 (1): 9. <a href="https://doi.org/10.2202/1544-6115.1252">https://doi.org/10.2202/1544-6115.1252</a>.</p>
+</div>
+<div id="ref-Rhein07c">
+<p>———. 2007b. “Learning Causal Networks from Systems Biology Time Course Data: An Effective Model Selection Procedure for the Vector Autoregressive Process.” <em>BMC Bioinformatics</em> 8 (2): S3. <a href="https://doi.org/10.1186/1471-2105-8-S2-S3">https://doi.org/10.1186/1471-2105-8-S2-S3</a>.</p>
+</div>
+<div id="ref-Pfaff18">
+<p>Pfaff, B., and M. Stigler. 2018. “vars: VAR Modelling.” R Package Version 1.5-3.</p>
+</div>
+<div id="ref-Primiceri2005timevarying">
+<p>Primiceri, G. E. 2005. “Time Varying Structural Vector Autoregressions and Monetary Policy.” <em>The Review of Economic Studies</em> 72 (3): 821–52. <a href="https://doi.org/10.1111/j.1467-937X.2005.00353.x">https://doi.org/10.1111/j.1467-937X.2005.00353.x</a>.</p>
+</div>
+<div id="ref-Ripley18">
+<p>Ripley, B., B. Venables, D. M. Bates, K. Hornik, A. Gebhardt, and D. Firth. 2018. “MASS: Support Functions and Datasets for Venables and Ripley’s Mass.” R Package Version 7.3-51.1.</p>
+</div>
+<div id="ref-Schafer17">
+<p>Schäfer, J., R. Opgen-Rhein, V. Zuber, M. Ahdesmäki, A. P. D. Silva, and K. Strimmer. 2017. “Corpcor: Efficient Estimation of Covariance and (Partial) Correlation.” R Package Version 1.6.9.</p>
+</div>
+<div id="ref-Schafer05b">
+<p>Schäfer, J., and K. Strimmer. 2005. “A Shrinkage Approach to Large-Scale Covariance Matrix Estimation and Implications for Functional Genomics.” <em>Statistical Applications in Genetics and Molecular Biology</em> 4 (1): 32. <a href="https://doi.org/10.2202/1544-6115.1175">https://doi.org/10.2202/1544-6115.1175</a>.</p>
+</div>
+<div id="ref-Sun04">
+<p>Sun, D., and S. Ni. 2004. “Bayesian Analysis of Vector-Autoregressive Models with Noninformative Priors.” <em>Journal of Statistical Planning and Inference</em> 121 (2): 291–309. <a href="https://doi.org/10.1016/S0378-3758(03)00116-2">https://doi.org/10.1016/S0378-3758(03)00116-2</a>.</p>
+</div>
+<div id="ref-Tsay05">
+<p>Tsay, R. S. 2005. <em>Analysis of Financial Time Series</em>. 2nd ed. Wiley Series in Probability and Statistics. Hoboken, NJ: John Wiley &amp; Sons.</p>
+</div>
+<div id="ref-Tsay18">
+<p>Tsay, R. S., and D. Wood. 2018. “MTS: All-Purpose Toolkit for Analyzing Multivariate Time Series (Mts) and Estimating Multivariate Volatility Models.” R Package Version 1.0.</p>
+</div>
+<div id="ref-Zellner86">
+<p>Zellner, A. 1986. “Bayesian Estimation and Prediction Using Asymmetric Loss Functions.” <em>Journal of the American Statistical Association</em> 81 (394): 446–51. <a href="https://doi.org/10.1080/01621459.1986.10478289">https://doi.org/10.1080/01621459.1986.10478289</a>.</p>
+</div>
+</div>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
